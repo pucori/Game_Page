@@ -296,12 +296,12 @@
                             Teclea en cualquier momento (o escribe aquí) el vocablo más largo del diccionario de la RAE (23 letras) para desbloquear la nave dorada <strong>Cervantes Mecha</strong>:
                         </p>
 
-                        <!-- Visualizador letra por letra de ELECTROENCEFALOGRAFISTA -->
-                        <div id="secretWordTracker" class="bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 mb-2.5 font-mono-code text-xs sm:text-sm tracking-widest text-center break-all">
+                        <!-- Indicador de progreso sin revelar el vocablo secreto -->
+                        <div id="secretWordTracker" role="progressbar" aria-label="Progreso del protocolo secreto" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" class="bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 mb-2.5 font-mono-code text-xs sm:text-sm tracking-widest text-center">
                             <!-- Rellenado dinámicamente -->
                         </div>
 
-                        <input id="secretInputBox" type="text" placeholder="Escribe aquí: electroencefalografista..." autocomplete="off" spellcheck="false"
+                        <input id="secretInputBox" type="text" placeholder="Escribe aquí tu respuesta..." autocomplete="off" spellcheck="false"
                             class="w-full bg-slate-950/90 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-1.5 text-xs font-mono-code text-amber-300 placeholder-slate-600 focus:outline-none">
                     </div>
 
@@ -825,7 +825,7 @@
             bossActive: false
         };
 
-        // Inicializar rastreador visual de 'ELECTROENCEFALOGRAFISTA' en la pantalla de título
+        // Inicializar el indicador de progreso del protocolo secreto
         function renderSecretWordTracker() {
             const container = document.getElementById('secretWordTracker');
             const pill = document.getElementById('mechaStatusPill');
@@ -833,16 +833,14 @@
 
             let html = '';
             for (let i = 0; i < SECRET_WORD.length; i++) {
-                const ch = SECRET_WORD[i].toUpperCase();
                 if (i < secretProgress || gameState.cervantesMecha) {
-                    html += `<span class="text-amber-300 font-extrabold drop-shadow-[0_0_6px_rgba(255,215,0,0.9)]">${ch}</span>`;
-                } else if (i === secretProgress) {
-                    html += `<span class="text-cyan-400 underline decoration-2">${ch}</span>`;
+                    html += '<span class="text-amber-300">●</span>';
                 } else {
-                    html += `<span class="text-slate-600">${ch}</span>`;
+                    html += '<span class="text-slate-700">●</span>';
                 }
             }
             container.innerHTML = html;
+            container.setAttribute('aria-valuenow', String(secretProgress));
 
             if (gameState.cervantesMecha) {
                 pill.textContent = '★ DESBLOQUEADO (23/23)';
@@ -2020,7 +2018,7 @@
 
         // Eventos de Teclado Global (Pantalla de Título + Combate en Tiempo Real)
         window.addEventListener('keydown', (e) => {
-            // Si estamos en la pantalla de título, escuchar la palabra secreta 'electroencefalografista'
+            // En la pantalla de título, escuchar el vocablo secreto
             if (!gameState.running) {
                 if (document.activeElement === document.getElementById('secretInputBox')) return;
                 const key = e.key.toLowerCase();
@@ -2186,5 +2184,8 @@
             requestAnimationFrame(gameLoop);
         };
     </script>
+    <div class="fixed inset-x-0 bottom-0 z-50 bg-slate-950/90 px-2 py-1 text-center text-[10px] leading-tight text-slate-300 pointer-events-none">
+        © 2026 Un juego de Alvizo Rivera Marcos Jaret, Flores Reyes Ana Camila y Vaca Ramires Ricardo
+    </div>
 </body>
 </html>
