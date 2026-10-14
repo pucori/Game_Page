@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON LEXICON: La Rebelión de los Barbarismos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=JetBrains+Mono:wght@400;600;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f3ff;
+            --neon-magenta: #ff00ea;
+            --neon-gold: #ffd700;
+            --neon-green: #00ff88;
+            --neon-red: #ff2a54;
+            --bg-dark: #060714;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .font-mono-code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Efectos Neón y Ciberpunk */
+        .neon-text-cyan {
+            color: #fff;
+            text-shadow: 0 0 8px var(--neon-cyan), 0 0 20px var(--neon-cyan);
+        }
+
+        .neon-text-magenta {
+            color: #fff;
+            text-shadow: 0 0 8px var(--neon-magenta), 0 0 20px var(--neon-magenta);
+        }
+
+        .neon-text-gold {
+            color: #fff8dc;
+            text-shadow: 0 0 10px var(--neon-gold), 0 0 25px #ff9900;
+        }
+
+        .neon-border-cyan {
+            border: 1px solid rgba(0, 243, 255, 0.5);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2), inset 0 0 15px rgba(0, 243, 255, 0.1);
+        }
+
+        .neon-border-magenta {
+            border: 1px solid rgba(255, 0, 234, 0.5);
+            box-shadow: 0 0 15px rgba(255, 0, 234, 0.25), inset 0 0 15px rgba(255, 0, 234, 0.1);
+        }
+
+        .neon-border-gold {
+            border: 1px solid rgba(255, 215, 0, 0.8);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 215, 0, 0.15);
+        }
+
+        /* Scanlines sutiles */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.25) 50%,
+                rgba(0, 0, 0, 0.25)
+            );
+            background-size: 100% 4px;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 6px var(--neon-cyan)); }
+            50% { filter: drop-shadow(0 0 16px var(--neon-magenta)); }
+        }
+
+        .animate-cyber-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        @keyframes shakeScreen {
+            0%, 100% { transform: translate(0, 0); }
+            20% { transform: translate(-6px, 4px); }
+            40% { transform: translate(6px, -4px); }
+            60% { transform: translate(-4px, -3px); }
+            80% { transform: translate(4px, 3px); }
+        }
+
+        .shake-effect {
+            animation: shakeScreen 0.3s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Scrollbar personalizada para el Códice */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0c1b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f3ff55;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00f3ff;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col justify-between overflow-hidden select-none">
+
+    <!-- Lienzo principal del juego a 60 FPS -->
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    <div class="scanlines pointer-events-none absolute inset-0 z-10 opacity-40"></div>
+
+    <!-- ==================== HUD SUPERIOR (EN JUEGO) ==================== -->
+    <header id="hudTop" class="relative z-20 hidden w-full px-3 sm:px-6 py-2.5 bg-slate-950/85 backdrop-blur-md border-b border-cyan-500/30">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Izquierda: Puntuación, Oleada y Combo -->
+            <div class="flex items-center gap-3 sm:gap-5">
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">Puntuación</div>
+                    <div id="hudScore" class="font-cyber text-lg sm:text-2xl font-black text-white tracking-wider">000000</div>
+                </div>
+
+                <div class="h-8 w-px bg-cyan-500/30"></div>
+
+                <div>
+                    <div class="text-[10px] uppercase tracking-widest text-fuchsia-400 font-semibold">Multiplicador</div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="hudCombo" class="font-cyber text-lg sm:text-2xl font-black text-fuchsia-400">x1</span>
+                        <span id="hudStreak" class="text-xs font-mono-code text-slate-400">(0 racha)</span>
+                    </div>
+                </div>
+
+                <div class="h-8 w-px bg-cyan-500/30 hidden sm:block"></div>
+
+                <div class="hidden sm:block">
+                    <div class="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold">Oleada</div>
+                    <div id="hudWave" class="font-cyber text-lg sm:text-xl font-bold text-emerald-300">OLEADA 1</div>
+                </div>
+            </div>
+
+            <!-- Centro: Integridad del Servidor y Escudo Cervantes Mecha -->
+            <div class="flex-1 max-w-xs mx-2">
+                <div class="flex justify-between items-center text-xs mb-1">
+                    <span class="font-cyber text-[10px] tracking-wider text-cyan-300 flex items-center gap-1">
+                        <span>NÚCLEO SERVIDOR RAE</span>
+                        <span id="mechaBadgeHud" class="hidden px-1.5 py-0.5 text-[9px] bg-amber-500/20 border border-amber-400 text-amber-300 rounded font-bold">★ CERVANTES MECHA</span>
+                    </span>
+                    <span id="hudHpText" class="font-mono-code font-bold text-emerald-400">100%</span>
+                </div>
+                <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700 p-0.5">
+                    <div id="hudHpBar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-cyan-300 rounded-full transition-all duration-300" style="width: 100%"></div>
+                </div>
+            </div>
+
+            <!-- Derecha: Perks activos y Controles Rápidos -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <div id="hudPerksContainer" class="hidden lg:flex items-center gap-1 mr-2"></div>
+
+                <button id="btnSummonBossHud" title="Invocar Jefe Secreto: El Murciélago Pentavocálico" class="px-2.5 py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-400/50 text-purple-200 text-xs font-cyber tracking-wider transition flex items-center gap-1 shadow-lg shadow-purple-950/50">
+                    <span>🦇</span>
+                    <span class="hidden md:inline">JEFE PENTAVOCÁLICO</span>
+                </button>
+
+                <button id="btnToggleMusic" title="Activar/Desactivar Pulso Synthwave Dinámico" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs transition">
+                    <span id="musicIcon">🎵 ON</span>
+                </button>
+
+                <button id="btnOpenCodexHud" title="Códice RAE y Pausa" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-200 text-xs font-cyber transition">
+                    📖 CÓDICE / PAUSA
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==================== HUD INFERIOR (FIJACIÓN DE BLANCO Y ARMAMENTO ORTOGRÁFICO) ==================== -->
+    <footer id="hudBottom" class="relative z-20 hidden w-full px-3 sm:px-6 py-2.5 bg-slate-950/90 backdrop-blur-md border-t border-cyan-500/30">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
+            
+            <!-- Indicador de Regla Ortográfica Activa -->
+            <div class="w-full md:w-1/3 flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3 py-2 rounded-xl">
+                <div id="ruleIconBox" class="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-lg shrink-0">
+                    🎯
+                </div>
+                <div class="overflow-hidden">
+                    <div id="activeRuleTitle" class="text-[11px] font-cyber uppercase tracking-wider text-cyan-400 truncate">ESPERANDO OBJETIVO...</div>
+                    <div id="activeRuleDesc" class="text-xs text-slate-300 truncate">Teclea la primera letra de cualquier enemigo para fijar blanco.</div>
+                </div>
+            </div>
+
+            <!-- Visor Central de Palabra Fijada (Lock-On) -->
+            <div class="w-full md:w-1/3 flex flex-col items-center justify-center bg-slate-900/95 border border-cyan-500/40 px-4 py-1.5 rounded-xl shadow-inner">
+                <div class="text-[10px] font-mono-code uppercase tracking-widest text-slate-400 mb-0.5" id="targetContextBadge">SIN BLANCO FIJADO</div>
+                <div id="lockedWordDisplay" class="font-mono-code text-xl sm:text-2xl font-extrabold tracking-widest min-h-[2rem] flex items-center justify-center">
+                    <span class="text-slate-600 text-sm font-normal">TECLEA PARA DISPARAR</span>
+                </div>
+            </div>
+
+            <!-- Controles de Cañón de Tildes y Diéresis (Para cualquier teclado o táctil) -->
+            <div class="w-full md:w-1/3 flex items-center justify-end gap-2">
+                <button id="btnArmTilde" class="flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
+                    <span class="font-bold text-sm text-fuchsia-300">´ CAÑÓN TILDE</span>
+                    <span class="text-[10px] text-fuchsia-300/80">Tecla [Tab] / [+] o [´]</span>
+                </button>
+
+                <button id="btnArmDieresis" class="flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
+                    <span class="font-bold text-sm text-cyan-300">¨ TORRETA DIÉRESIS</span>
+                    <span class="text-[10px] text-cyan-300/80">Barra [Espacio] o [ü]</span>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==================== PANTALLA DE TÍTULO ==================== -->
+    <section id="titleScreen" class="relative z-30 flex-1 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="max-w-4xl w-full bg-slate-950/90 backdrop-blur-xl rounded-2xl neon-border-cyan p-5 sm:p-8 shadow-2xl my-auto">
+            
+            <!-- Encabezado y Título Animado -->
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-mono-code mb-3">
+                    <span>SISTEMA DE DEFENSA LINGÜÍSTICA RAE-2099</span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                </div>
+                <h1 class="font-cyber text-3xl sm:text-5xl md:text-6xl font-black tracking-tight neon-text-cyan animate-cyber-glow mb-2">
+                    NEON LEXICON
+                </h1>
+                <p class="font-cyber text-sm sm:text-lg text-fuchsia-400 tracking-widest uppercase">
+                    La Rebelión de los Barbarismos
+                </p>
+            </div>
+
+            <!-- Grid de Configuración y Easter Egg Cervantes Mecha -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                
+                <!-- Columna 1: Selector de Oleada / Dificultad y Modos -->
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+                    <div>
+                        <h2 class="font-cyber text-sm text-cyan-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <span>⚡</span> Configuración de Misión
+                        </h2>
+                        <label class="block text-xs text-slate-400 mb-1.5">Selecciona Oleada / Nivel de Amenaza:</label>
+                        <select id="selectStartWave" class="w-full bg-slate-950 border border-cyan-500/40 rounded-lg px-3 py-2 text-sm text-white font-mono-code focus:outline-none focus:border-cyan-400 mb-3">
+                            <option value="1">Oleada 1: La H Fantasma y Homófonos (Cadete)</option>
+                            <option value="2">Oleada 2: Ruptura de Hiatos Acentuales (Agente)</option>
+                            <option value="3">Oleada 3: Camuflaje de Diéresis güe/güi (Especialista)</option>
+                            <option value="4">Oleada 4: Jefe 'El Murciélago Pentavocálico' (Maestro RAE)</option>
+                        </select>
+
+                        <div class="space-y-2 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <span class="text-fuchsia-400 font-bold">✓</span>
+                                <span><strong>Tilde Rápida:</strong> Escribe <code class="text-cyan-300">á,é,í,ó,ú</code> normal o pulsa <code class="px-1 bg-slate-800 rounded text-fuchsia-300">Tab</code> / <code class="px-1 bg-slate-800 rounded text-fuchsia-300">+</code> antes de la vocal.</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-cyan-400 font-bold">✓</span>
+                                <span><strong>Cañón de Diéresis (¨):</strong> Pulsa <code class="px-1 bg-slate-800 rounded text-cyan-300">Espacio</code> para disparar la <code class="text-cyan-300">ü</code> a enemigos sigilosos.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+                        <span class="text-xs text-purple-300 font-mono-code">Acceso Directo a Jefe Secreto:</span>
+                        <button id="btnStartBossDirect" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-800 border border-purple-400 text-purple-200 text-xs font-cyber tracking-wider transition shadow-md">
+                            🦇 INVOCAR MURCIÉLAGO
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Terminal Secreta Easter Egg 'CERVANTES MECHA' -->
+                <div id="mechaCard" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition-all duration-500">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="font-cyber text-sm text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                                <span>🏆</span> Protocolo Secreto RAE
+                            </h2>
+                            <span id="mechaStatusPill" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-400">BLOQUEADO (0/23)</span>
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">
+                            Teclea en cualquier momento (o escribe aquí) el vocablo más largo del diccionario de la RAE (23 letras) para desbloquear la nave dorada <strong>Cervantes Mecha</strong>:
+                        </p>
+
+                        <!-- Visualizador letra por letra de ELECTROENCEFALOGRAFISTA -->
+                        <div id="secretWordTracker" class="bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 mb-2.5 font-mono-code text-xs sm:text-sm tracking-widest text-center break-all">
+                            <!-- Rellenado dinámicamente -->
+                        </div>
+
+                        <input id="secretInputBox" type="text" placeholder="Escribe aquí: electroencefalografista..." autocomplete="off" spellcheck="false"
+                            class="w-full bg-slate-950/90 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-1.5 text-xs font-mono-code text-amber-300 placeholder-slate-600 focus:outline-none">
+                    </div>
+
+                    <div id="mechaUnlockedInfo" class="hidden mt-3 p-2.5 rounded-lg bg-amber-500/10 border border-amber-400/50 text-amber-200 text-xs flex items-center gap-2.5">
+                        <span class="text-2xl">⚔️</span>
+                        <div>
+                            <div class="font-cyber font-bold text-amber-300">¡CERVANTES MECHA ACTIVADO!</div>
+                            <div class="text-[11px]">Cañones de Pluma Láser Dorada + Escudo Extra (+50% Integridad).</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones Principales de Acción -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                <button id="btnStartGame" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-black text-base sm:text-lg tracking-wider shadow-lg shadow-cyan-500/30 transition transform hover:-translate-y-0.5">
+                    ▶ INICIAR DEFENSA LÉXICA
+                </button>
+
+                <button id="btnOpenCodexTitle" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-fuchsia-500/50 text-fuchsia-300 font-cyber font-bold text-sm tracking-wider transition">
+                    📖 ABRIR CÓDICE RAE (REGLAS)
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== MODAL: CÓDICE RAE (GUÍA VISUAL Y PAUSA) ==================== -->
+    <div id="codexModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+        <div class="max-w-4xl w-full max-h-[90vh] bg-slate-900 neon-border-cyan rounded-2xl flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 bg-slate-950 border-b border-cyan-500/30 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl">📘</span>
+                    <div>
+                        <h2 class="font-cyber text-lg sm:text-xl font-bold text-cyan-300">CÓDICE TÁCTICO DE LA RAE</h2>
+                        <p class="text-xs text-slate-400">Manual de Armamento Ortográfico y Debilidades Enemigas</p>
+                    </div>
+                </div>
+                <button id="btnCloseCodex" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-cyber text-xs">
+                    ✕ CERRAR Y CONTINUAR
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Mecánica 1 -->
+                    <div class="bg-slate-950/80 border border-emerald-500/40 rounded-xl p-4">
+                        <div class="font-cyber text-emerald-400 font-bold mb-1 flex items-center gap-2">
+                            <span>🧬</span> 1. Mutantes de 'La H Fantasma'
+                        </div>
+                        <p class="text-slate-300 mb-2">
+                            Las palabras que empiezan por el diptongo <strong>ue-</strong> llevan H inicial (<code class="text-emerald-300">hueso, huevo, hueco, huérfano</code>).
+                        </p>
+                        <p class="text-amber-300/90 text-xs bg-amber-500/10 p-2 rounded border border-amber-500/30">
+                            <strong>¡Cuidado al destruir su escudo!</strong> Se dividen en drones con derivados cultos que cambian <strong>ue</strong> por la raíz latina <strong>o</strong> y <strong>PIERDEN LA H</strong> (<code class="text-white">osario, óseo, ovíparo, ovario, oquedad, orfanato</code>). Si tecleas 'H' por inercia, ¡el dron regenera escudo y acelera un 25%!
+                        </p>
+                    </div>
+
+                    <!-- Mecánica 2 -->
+                    <div class="bg-slate-950/80 border border-fuchsia-500/40 rounded-xl p-4">
+                        <div class="font-cyber text-fuchsia-400 font-bold mb-1 flex items-center gap-2">
+                            <span>💥</span> 2. Cañón de Ruptura de Hiatos (í / ú)
+                        </div>
+                        <p class="text-slate-300 mb-2">
+                            Enemigos acorazados como <code class="text-fuchsia-300">maíz, baúl, raíz, búho, país, caída, ataúd</code> tienen una vocal cerrada débil (<strong>i, u</strong>) tónica junto a una vocal abierta (<strong>a, e, o</strong>).
+                        </p>
+                        <p class="text-fuchsia-200/90 text-xs bg-fuchsia-500/10 p-2 rounded border border-fuchsia-500/30">
+                            <strong>Acción:</strong> Dispara la vocal con tilde (<code class="text-white">í / ú</code> o pulsa <code class="text-white">Tab / +</code> antes de la vocal) para activar el Rayo Magenta y partir la coraza del enemigo en dos sílabas separadas.
+                        </p>
+                    </div>
+
+                    <!-- Mecánica 3 -->
+                    <div class="bg-slate-950/80 border border-cyan-500/40 rounded-xl p-4">
+                        <div class="font-cyber text-cyan-400 font-bold mb-1 flex items-center gap-2">
+                            <span>👁️</span> 3. Torreta Doble de Diéresis (ü)
+                        </div>
+                        <p class="text-slate-300 mb-2">
+                            En las sílabas <strong>gue / gui</strong> la U es muda. Las unidades de camuflaje (<code class="text-cyan-300">pingüino, vergüenza, agüita, lingüística, cigüeña, bilingüe</code>) necesitan los dos puntos de la diéresis para sonar.
+                        </p>
+                        <p class="text-cyan-200/90 text-xs bg-cyan-500/10 p-2 rounded border border-cyan-500/30">
+                            <strong>Acción:</strong> Pulsa la <strong>Barra Espaciadora (Space)</strong> o escribe <code class="text-white">ü</code> para disparar el Doble Cañón Cian, revelar al enemigo sigiloso y validar la diéresis.
+                        </p>
+                    </div>
+
+                    <!-- Mecánica 4 y Jefe -->
+                    <div class="bg-slate-950/80 border border-purple-500/40 rounded-xl p-4">
+                        <div class="font-cyber text-purple-400 font-bold mb-1 flex items-center gap-2">
+                            <span>🦇</span> 4. Homófonos y Murciélago Pentavocálico
+                        </div>
+                        <p class="text-slate-300 mb-2">
+                            Lee la etiqueta de contexto sobre cada dron: <code class="text-purple-300">[Cilindro]: tubo</code> vs <code class="text-purple-300">[Tener]: tuvo</code>; <code class="text-purple-300">[Silencio]: calló</code> vs <code class="text-purple-300">[Caer]: cayó</code>; y pretéritos en <code class="text-purple-300">-aba</code> (con B) o <code class="text-purple-300">-uve</code> (con V).
+                        </p>
+                        <p class="text-purple-200/90 text-xs bg-purple-500/10 p-2 rounded border border-purple-500/30">
+                            <strong>Jefe Secreto:</strong> El <em>Murciélago Pentavocálico</em> posee 5 núcleos (A-E-I-O-U). Solo recibe daño masivo con palabras que contienen las 5 vocales (<code class="text-white">murciélago, eucalipto, arquitectónico, educación</code>).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: SISTEMA ROGUELIKE DE MEJORAS ENTRE OLEADAS ==================== -->
+    <div id="perkModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4">
+        <div class="max-w-4xl w-full bg-slate-900 neon-border-magenta rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+            <div class="inline-block px-3 py-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-400/40 text-fuchsia-300 text-xs font-mono-code mb-2">
+                ¡OLEADA COMPLETADA CON ÉXITO!
+            </div>
+            <h2 class="font-cyber text-2xl sm:text-3xl font-black text-white mb-2">
+                ACTUALIZACIÓN DE PROTOCOLO RAE
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-300 mb-6">
+                Elige un módulo cibernético permanente para fortalecer tu servidor antes de la siguiente oleada:
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-left">
+                <!-- Perk 1 -->
+                <button data-perk="aba" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            ⏳
+                        </div>
+                        <h3 class="font-cyber text-base font-bold text-cyan-300 mb-2">Regla del Pretérito -ABA</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Ralentiza un <strong>30%</strong> a los enemigos de verbos/homófonos y aumenta un <strong>+20%</strong> todos los puntos obtenidos.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-cyan-400 font-bold">
+                        [ INSTALAR MÓDULO → ]
+                    </div>
+                </button>
+
+                <!-- Perk 2 -->
+                <button data-perk="etimo" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            🛡️
+                        </div>
+                        <h3 class="font-cyber text-base font-bold text-emerald-300 mb-2">Escudo Etimológico</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Bloquea la aceleración de castigo si tecleas <strong>'H'</strong> por error en un derivado culto con O y repara <strong>+25% de vida</strong> del servidor.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-emerald-400 font-bold">
+                        [ INSTALAR MÓDULO → ]
+                    </div>
+                </button>
+
+                <!-- Perk 3 -->
+                <button data-perk="diacritica" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-fuchsia-500/40 hover:border-fuchsia-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-fuchsia-500/10 border border-fuchsia-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                            ⚡
+                        </div>
+                        <h3 class="font-cyber text-base font-bold text-fuchsia-300 mb-2">Sobrecarga Diacrítica</h3>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Los impactos de <strong>tildes y diéresis</strong> generan ondas expansivas que dañan/empujan enemigos cercanos y duplican la ganancia de racha.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-fuchsia-400 font-bold">
+                        [ INSTALAR MÓDULO → ]
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: FIN DE PARTIDA / VICTORIA ==================== -->
+    <div id="gameOverModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4">
+        <div class="max-w-lg w-full bg-slate-900 neon-border-cyan rounded-2xl p-6 sm:p-8 text-center shadow-2xl">
+            <div id="endGameIcon" class="text-5xl mb-3">🏆</div>
+            <h2 id="endGameTitle" class="font-cyber text-2xl sm:text-3xl font-black text-white mb-2">
+                SERVIDOR COMPROMETIDO
+            </h2>
+            <p id="endGameSubtitle" class="text-xs sm:text-sm text-slate-300 mb-6">
+                Los barbarismos han sobrecargado el núcleo sintáctico.
+            </p>
+
+            <div class="grid grid-cols-2 gap-3 mb-6 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <div>
+                    <div class="text-[10px] uppercase text-slate-400">Puntuación Final</div>
+                    <div id="finalScoreText" class="font-cyber text-2xl font-bold text-cyan-400">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase text-slate-400">Racha Máxima</div>
+                    <div id="finalStreakText" class="font-cyber text-2xl font-bold text-fuchsia-400">0</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button id="btnRestartGame" class="px-6 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-cyber font-bold text-sm transition">
+                    ↻ JUGAR DE NUEVO
+                </button>
+                <button id="btnReturnMenu" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-cyber font-bold text-sm transition">
+                    ⌂ MENÚ PRINCIPAL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ============================================================================
+         * 1. SINTETIZADOR DE AUDIO EN TIEMPO REAL (WEB AUDIO API)
+         * Genera disparos láser, explosión de hiatos, doble cañón de diéresis,
+         * alarma de error ortográfico, fanfarrias y pulso synthwave adaptable al combo.
+         * ============================================================================ */
+        class CyberAudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.musicEnabled = true;
+                this.musicTimer = null;
+                this.beatStep = 0;
+                this.bassNotes = [55, 55, 65.41, 55, 73.42, 65.41, 49, 55]; // A1 synthwave progression
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playLaser(pitchOffset = 0, isMecha = false) {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = isMecha ? 'triangle' : 'sawtooth';
+                const startFreq = (isMecha ? 720 : 540) + (pitchOffset * 35);
+                osc.frequency.setValueAtTime(startFreq, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.11);
+
+                gain.gain.setValueAtTime(0.16, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+
+            playHiatoExplosion() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                // Sub-bass drop + barrido resonante magenta
+                const osc = this.ctx.createOscillator();
+                const osc2 = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc2.type = 'square';
+                osc.frequency.setValueAtTime(380, now);
+                osc.frequency.exponentialRampToValueAtTime(42, now + 0.45);
+
+                osc2.frequency.setValueAtTime(760, now);
+                osc2.frequency.exponentialRampToValueAtTime(84, now + 0.35);
+
+                gain.gain.setValueAtTime(0.28, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.46);
+
+                osc.connect(gain);
+                osc2.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc2.start(now);
+                osc.stop(now + 0.46);
+                osc2.stop(now + 0.46);
+            }
+
+            playDieresisTwinLaser() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+
+                // Dos osciladores paralelos ligeramente desafinados (efecto chorus cian)
+                [660, 880].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.03);
+                    osc.frequency.exponentialRampToValueAtTime(1320, now + 0.18 + idx * 0.03);
+
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22 + idx * 0.03);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.03);
+                    osc.stop(now + 0.23 + idx * 0.03);
+                });
+            }
+
+            playErrorAlarm() {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(145, now);
+                osc.frequency.setValueAtTime(112, now + 0.09);
+
+                gain.gain.setValueAtTime(0.22, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.26);
+            }
+
+            playFanfare(isMecha = false) {
+                this.init();
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                const notes = isMecha
+                    ? [523.25, 659.25, 783.99, 1046.50, 1318.51] // Acorde épico Do Mayor
+                    : [440, 554.37, 659.25, 880];
+
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+
+                    gain.gain.setValueAtTime(0.18, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.36);
+                });
+            }
+
+            startMusicLoop(getComboMultiplierFn) {
+                this.stopMusicLoop();
+                const tick = () => {
+                    if (!this.musicEnabled || !gameState.running || gameState.paused) {
+                        this.musicTimer = setTimeout(tick, 250);
+                        return;
+                    }
+                    this.init();
+                    if (this.ctx) {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        const freq = this.bassNotes[this.beatStep % this.bassNotes.length];
+                        this.beatStep++;
+
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, now);
+
+                        gain.gain.setValueAtTime(0.055, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.17);
+                    }
+
+                    // El BPM sube dinámicamente según el multiplicador de racha (x1, x2, x4, x8)
+                    const mult = getComboMultiplierFn();
+                    const bpm = mult >= 8 ? 155 : mult >= 4 ? 138 : mult >= 2 ? 122 : 105;
+                    const intervalMs = (60 / bpm / 2) * 1000;
+                    this.musicTimer = setTimeout(tick, intervalMs);
+                };
+                tick();
+            }
+
+            stopMusicLoop() {
+                if (this.musicTimer) {
+                    clearTimeout(this.musicTimer);
+                    this.musicTimer = null;
+                }
+            }
+        }
+
+        const audio = new CyberAudioSynth();
+
+        /* ============================================================================
+         * 2. BASE DE DATOS LÉXICA Y REGLAS ORTOGRÁFICAS DE LA RAE
+         * ============================================================================ */
+        const LEXICON_DB = {
+            // Mecánica 1: Mutantes de la H Fantasma (Raíz con 'ue-' lleva H -> derivados con 'o-' pierden la H)
+            hMutants: [
+                {
+                    word: 'hueso',
+                    context: '[Raíz diptongo UE- con H]',
+                    rule: 'Lleva H por empezar con el diptongo "ue-". ¡Al romperse soltará derivados cultos con "o-" SIN H!',
+                    children: [
+                        { word: 'osario', context: '[Derivado de hueso - SIN H]' },
+                        { word: 'óseo', context: '[Derivado de hueso - SIN H]' },
+                        { word: 'osamenta', context: '[Derivado de hueso - SIN H]' }
+                    ]
+                },
+                {
+                    word: 'huevo',
+                    context: '[Raíz diptongo UE- con H]',
+                    rule: 'Lleva H por empezar con "ue-". Sus derivados latinos (ov-) pierden la H.',
+                    children: [
+                        { word: 'ovíparo', context: '[Derivado de huevo - SIN H]' },
+                        { word: 'ovario', context: '[Derivado de huevo - SIN H]' }
+                    ]
+                },
+                {
+                    word: 'hueco',
+                    context: '[Raíz diptongo UE- con H]',
+                    rule: '"Hueco" lleva H inicial, pero su derivado culto "oquedad" cambia ue->o y pierde la H.',
+                    children: [
+                        { word: 'oquedad', context: '[Derivado de hueco - SIN H]' },
+                        { word: 'óvalo', context: '[Raíz culta con O - SIN H]' }
+                    ]
+                },
+                {
+                    word: 'huérfano',
+                    context: '[Raíz diptongo UE- con H]',
+                    rule: '"Huérfano" lleva H por el diptongo ue-, pero "orfanato" y "orfandad" no llevan H.',
+                    children: [
+                        { word: 'orfanato', context: '[Derivado de huérfano - SIN H]' },
+                        { word: 'orfandad', context: '[Derivado de huérfano - SIN H]' }
+                    ]
+                }
+            ],
+
+            // Mecánica 2: Cañón de Ruptura de Hiatos (Vocal cerrada tónica í / ú rompe el diptongo)
+            hiatos: [
+                { word: 'maíz', syllables: ['MA', 'ÍZ'], context: '[Hiato Acentual: MA-ÍZ]', rule: 'Tilde obligatoria en la vocal débil "í" para romper el diptongo.' },
+                { word: 'baúl', syllables: ['BA', 'ÚL'], context: '[Hiato Acentual: BA-ÚL]', rule: 'Tilde en la "ú" tónica junto a vocal fuerte para formar hiato.' },
+                { word: 'raíz', syllables: ['RA', 'ÍZ'], context: '[Hiato Acentual: RA-ÍZ]', rule: 'Hiato acentual: la "í" cerrada vence a la "a" abierta con una tilde.' },
+                { word: 'búho', syllables: ['BÚ', 'HO'], context: '[Hiato Acentual: BÚ-HO]', rule: 'La H intercalada no impide el hiato; lleva tilde en la "ú".' },
+                { word: 'país', syllables: ['PA', 'ÍS'], context: '[Hiato Acentual: PA-ÍS]', rule: 'Hiato acentual: requiere tilde en la "í" aunque termine en S.' },
+                { word: 'caída', syllables: ['CA', 'Í', 'DA'], context: '[Hiato Acentual: CA-Í-DA]', rule: 'Vocal cerrada tónica "í" junto a abierta "a": siempre lleva tilde.' },
+                { word: 'ataúd', syllables: ['A', 'TA', 'ÚD'], context: '[Hiato Acentual: A-TA-ÚD]', rule: 'Hiato acentual en "ú" pese a ser palabra aguda terminada en D.' },
+                { word: 'egoísta', syllables: ['E', 'GO', 'ÍS', 'TA'], context: '[Hiato Acentual: E-GO-ÍS-TA]', rule: 'Ruptura de diptongo mediante tilde en la vocal débil "í".' }
+            ],
+
+            // Mecánica 3: Torreta Doble de Diéresis (güe / güi)
+            dieresis: [
+                { word: 'pingüino', context: '[Camuflaje GÜI: U sonora]', rule: 'Pulsa ESPACIO o "ü": requiere diéresis (¨) para que la U suene en güi.' },
+                { word: 'vergüenza', context: '[Camuflaje GÜE: U sonora]', rule: 'Pulsa ESPACIO o "ü": diéresis obligatoria sobre la U en güe.' },
+                { word: 'agüita', context: '[Camuflaje GÜI: Diminutivo]', rule: 'Aunque "agua" no lleva diéresis, "agüita" la exige para conservar el sonido de la U.' },
+                { word: 'lingüística', context: '[Camuflaje GÜI + Esdrújula]', rule: 'Doble reto: lleva diéresis en "güi" y tilde en "ís" por ser esdrújula.' },
+                { word: 'cigüeña', context: '[Camuflaje GÜE: U sonora]', rule: 'Pulsa ESPACIO o "ü" para iluminar la sílaba güe.' },
+                { word: 'bilingüe', context: '[Camuflaje GÜE: U sonora]', rule: 'Lleva diéresis para pronunciar la U antes de la E.' },
+                { word: 'antigüedad', context: '[Camuflaje GÜE: U sonora]', rule: 'Exige diéresis en la sílaba güe.' }
+            ],
+
+            // Mecánica 4: Drones de Homófonos y Pretérito (-aba / -uve / hervir-servir-vivir)
+            homofonos: [
+                { word: 'tubo', context: '[Cilindro de acero]', rule: '"Tubo" con B es el objeto cilíndrico; con V es del verbo tener.', wrongChar: 'v' },
+                { word: 'tuvo', context: '[Pasado del verbo tener]', rule: '"Tuvo" con V es pretérito de tener (como estuve, anduve).', wrongChar: 'b' },
+                { word: 'calló', context: '[Guardar silencio]', rule: '"Calló" con LL es del verbo callar; con Y es del verbo caer.', wrongChar: 'y' },
+                { word: 'cayó', context: '[Precipitarse al suelo]', rule: '"Cayó" con Y es el pasado del verbo caer.', wrongChar: 'l' },
+                { word: 'valla', context: '[Cerca o muro metálico]', rule: '"Valla" con LL es un obstáculo o cerca; "vaya" con Y es del verbo ir.', wrongChar: 'y' },
+                { word: 'vaya', context: '[Del verbo ir / Interjección]', rule: '"Vaya" con V e Y corresponde al verbo ir.', wrongChar: 'l' },
+                { word: 'hecho', context: '[Suceso o fabricado]', rule: 'Del verbo hacer: conserva la H de su familia léxica.', wrongChar: 'e' },
+                { word: 'cantábamos', context: '[Pretérito en -ABA]', rule: 'Todos los pretéritos imperfectos terminados en -aba, -abas, -ábamos se escriben con B y tilde esdrújula.', wrongChar: 'v' },
+                { word: 'estuvieron', context: '[Pretérito en -UVIERON]', rule: 'Los verbos estar, andar y tener llevan V en el pretérito indefinido.', wrongChar: 'b' },
+                { word: 'hervir', context: '[Excepción en -BIR/-VIR]', rule: 'Se escriben con B los verbos en -bir EXCEPTO hervir, servir y vivir.', wrongChar: 'b' },
+                { word: 'vivir', context: '[Excepción en -BIR/-VIR]', rule: 'Junto con hervir y servir, "vivir" es una de las 3 excepciones clásicas con V.', wrongChar: 'b' }
+            ],
+
+            // Easter Egg 2: Palabras Pentavocálicas para dañar al Jefe 'El Murciélago Pentavocálico'
+            pentavocalicas: [
+                { word: 'murciélago', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Contiene las 5 vocales y lleva tilde en la É por ser esdrújula.' },
+                { word: 'eucalipto', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Palabra pentavocálica llana terminada en vocal (sin tilde).' },
+                { word: 'arquitectónico', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Pentavocálica esdrújula: enciende los 5 núcleos del jefe.' },
+                { word: 'educación', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Pentavocálica aguda terminada en N: requiere tilde en la Ó.' },
+                { word: 'cautiverio', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Contiene las 5 vocales sin repetir ninguna.' },
+                { word: 'abuelito', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Contiene las 5 vocales y lleva B por el prefijo/raíz.' },
+                { word: 'auriculares', context: '[5 VOCALES: A-E-I-O-U]', rule: 'Contiene las 5 vocales para sobrecargar el escudo del Murciélago.' }
+            ]
+        };
+
+        /* ============================================================================
+         * 3. ESTADO DEL JUEGO Y EASTER EGG 1 ('CERVANTES MECHA')
+         * ============================================================================ */
+        const SECRET_WORD = 'electroencefalografista';
+        let secretProgress = 0;
+
+        const gameState = {
+            running: false,
+            paused: false,
+            score: 0,
+            streak: 0,
+            maxStreak: 0,
+            comboMultiplier: 1,
+            wave: 1,
+            waveSpawned: 0,
+            waveTargetKills: 8,
+            waveKills: 0,
+            hp: 100,
+            maxHp: 100,
+            cervantesMecha: false,
+            tildeArmed: false,
+            dieresisArmed: false,
+            lockedEnemyId: null,
+            perks: {
+                aba: 0,        // Ralentiza verbos/homófonos 30% y +20% puntos
+                etimo: 0,      // Bloquea castigo de H en derivados con O y cura
+                diacritica: 0  // Ondas expansivas en tildes/diéresis y doble racha
+            },
+            enemies: [],
+            lasers: [],
+            particles: [],
+            floatingTexts: [],
+            shockwaves: [],
+            splitHalves: [],
+            stars: [],
+            lastSpawnTime: 0,
+            spawnInterval: 2900,
+            bossActive: false
+        };
+
+        // Inicializar rastreador visual de 'ELECTROENCEFALOGRAFISTA' en la pantalla de título
+        function renderSecretWordTracker() {
+            const container = document.getElementById('secretWordTracker');
+            const pill = document.getElementById('mechaStatusPill');
+            if (!container) return;
+
+            let html = '';
+            for (let i = 0; i < SECRET_WORD.length; i++) {
+                const ch = SECRET_WORD[i].toUpperCase();
+                if (i < secretProgress || gameState.cervantesMecha) {
+                    html += `<span class="text-amber-300 font-extrabold drop-shadow-[0_0_6px_rgba(255,215,0,0.9)]">${ch}</span>`;
+                } else if (i === secretProgress) {
+                    html += `<span class="text-cyan-400 underline decoration-2">${ch}</span>`;
+                } else {
+                    html += `<span class="text-slate-600">${ch}</span>`;
+                }
+            }
+            container.innerHTML = html;
+
+            if (gameState.cervantesMecha) {
+                pill.textContent = '★ DESBLOQUEADO (23/23)';
+                pill.className = 'text-[10px] font-mono-code px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400 text-amber-300 font-bold';
+            } else {
+                pill.textContent = `PROGRESO (${secretProgress}/23)`;
+            }
+        }
+
+        function unlockCervantesMecha() {
+            if (gameState.cervantesMecha) return;
+            gameState.cervantesMecha = true;
+            secretProgress = SECRET_WORD.length;
+            gameState.maxHp = 150;
+            gameState.hp = 150;
+            renderSecretWordTracker();
+
+            const card = document.getElementById('mechaCard');
+            const info = document.getElementById('mechaUnlockedInfo');
+            const hudBadge = document.getElementById('mechaBadgeHud');
+            if (card) card.classList.add('neon-border-gold');
+            if (info) info.classList.remove('hidden');
+            if (hudBadge) hudBadge.classList.remove('hidden');
+
+            audio.playFanfare(true);
+            spawnFloatingText(canvas.width / 2, canvas.height / 2, '¡CERVANTES MECHA DESBLOQUEADO!', '#ffd700', 22);
+            updateHud();
+        }
+
+        /* ============================================================================
+         * 4. CONFIGURACIÓN DEL CANVAS Y MOTOR GRÁFICO A 60 FPS
+         * ============================================================================ */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            gameState.stars = [];
+            for (let i = 0; i < 85; i++) {
+                gameState.stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 0.5,
+                    speed: Math.random() * 0.6 + 0.15,
+                    alpha: Math.random() * 0.7 + 0.2
+                });
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        /* ============================================================================
+         * 5. CREACIÓN DE ENEMIGOS Y JEFE SECRETO 'EL MURCIÉLAGO PENTAVOCÁLICO'
+         * ============================================================================ */
+        let enemyIdCounter = 1;
+
+        function createEnemy(type, customData = null, xPos = null, yPos = null) {
+            const margin = 120;
+            const x = xPos !== null ? xPos : margin + Math.random() * Math.max(100, canvas.width - margin * 2);
+            const y = yPos !== null ? yPos : -45;
+
+            let data;
+            let speed = 0.48 + (gameState.wave * 0.08);
+            let color = '#00f3ff';
+            let isDerivativeWithoutH = false;
+            let childrenData = null;
+            let syllables = null;
+            let wrongChar = null;
+
+            if (type === 'hMutant') {
+                data = customData || LEXICON_DB.hMutants[Math.floor(Math.random() * LEXICON_DB.hMutants.length)];
+                color = '#00ff88';
+                speed *= 0.82;
+                childrenData = data.children;
+            } else if (type === 'hDerivative') {
+                data = customData;
+                color = '#10b981';
+                speed *= 1.32; // Drones veloces
+                isDerivativeWithoutH = true;
+            } else if (type === 'hiato') {
+                data = customData || LEXICON_DB.hiatos[Math.floor(Math.random() * LEXICON_DB.hiatos.length)];
+                color = '#ff00ea';
+                speed *= 0.9;
+                syllables = data.syllables;
+            } else if (type === 'dieresis') {
+                data = customData || LEXICON_DB.dieresis[Math.floor(Math.random() * LEXICON_DB.dieresis.length)];
+                color = '#00f3ff';
+                speed *= 1.0;
+            } else if (type === 'homofono') {
+                data = customData || LEXICON_DB.homofonos[Math.floor(Math.random() * LEXICON_DB.homofonos.length)];
+                color = '#a855f7';
+                wrongChar = data.wrongChar;
+                // Aplicar Perk 'Regla del Pretérito -ABA'
+                if (gameState.perks.aba > 0) {
+                    speed *= Math.pow(0.7, gameState.perks.aba);
+                }
+            }
+
+            const enemy = {
+                id: enemyIdCounter++,
+                type,
+                word: data.word,
+                typedIndex: 0,
+                context: data.context,
+                rule: data.rule || 'Derivado culto con raíz latina O-: ¡Se escribe SIN H!',
+                x,
+                y,
+                speed,
+                color,
+                isDerivativeWithoutH,
+                childrenData,
+                syllables,
+                wrongChar,
+                shieldBoosted: false,
+                stealthPhase: Math.random() * Math.PI * 2,
+                revealed: type !== 'dieresis',
+                isBoss: false
+            };
+
+            gameState.enemies.push(enemy);
+            return enemy;
+        }
+
+        function spawnPentavocalicBoss() {
+            // Evitar duplicar al jefe si ya está en pantalla
+            if (gameState.enemies.some(e => e.isBoss)) return;
+
+            gameState.bossActive = true;
+            const firstWordObj = LEXICON_DB.pentavocalicas[0];
+
+            const boss = {
+                id: enemyIdCounter++,
+                type: 'pentavocalicBoss',
+                isBoss: true,
+                word: firstWordObj.word,
+                typedIndex: 0,
+                context: '🦇 JEFE SECRETO: EL MURCIÉLAGO PENTAVOCÁLICO',
+                rule: firstWordObj.rule,
+                x: canvas.width / 2,
+                y: 115,
+                speed: 0.14,
+                color: '#ffd700',
+                bossHp: 4, // Requiere 4 palabras pentavocálicas para ser derrotado
+                bossMaxHp: 4,
+                wordPoolIndex: 0,
+                vowelsLit: { a: false, e: false, i: false, o: false, u: false },
+                wingAngle: 0
+            };
+
+            gameState.enemies.push(boss);
+            audio.playFanfare(true);
+            spawnFloatingText(canvas.width / 2, 190, '¡ALERTA: EL MURCIÉLAGO PENTAVOCÁLICO HA APARECIDO!', '#ffd700', 18);
+        }
+
+        function spawnWaveEnemy() {
+            if (gameState.bossActive) return;
+
+            // En la Oleada 4 aparece automáticamente el Jefe Secreto
+            if (gameState.wave === 4 && gameState.waveSpawned === 0) {
+                gameState.waveSpawned++;
+                spawnPentavocalicBoss();
+                return;
+            }
+
+            if (gameState.waveSpawned >= gameState.waveTargetKills) return;
+
+            const roll = Math.random();
+            if (gameState.wave === 1) {
+                if (roll < 0.45) createEnemy('hMutant');
+                else createEnemy('homofono');
+            } else if (gameState.wave === 2) {
+                if (roll < 0.45) createEnemy('hiato');
+                else if (roll < 0.75) createEnemy('hMutant');
+                else createEnemy('homofono');
+            } else {
+                if (roll < 0.35) createEnemy('dieresis');
+                else if (roll < 0.65) createEnemy('hiato');
+                else if (roll < 0.85) createEnemy('hMutant');
+                else createEnemy('homofono');
+            }
+
+            gameState.waveSpawned++;
+        }
+
+        /* ============================================================================
+         * 6. SISTEMA DE PARTÍCULAS, TEXTOS FLOTANTES Y EFECTOS VISUALES
+         * ============================================================================ */
+        function spawnParticles(x, y, color, count = 22, speedMult = 1) {
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = (Math.random() * 4.5 + 1.2) * speedMult;
+                gameState.particles.push({
+                    x,
+                    y,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    color,
+                    alpha: 1,
+                    size: Math.random() * 3.5 + 1.5
+                });
+            }
+        }
+
+        function spawnFloatingText(x, y, text, color = '#00f3ff', size = 15) {
+            gameState.floatingTexts.push({
+                x: Math.max(140, Math.min(canvas.width - 140, x)),
+                y,
+                text,
+                color,
+                size,
+                alpha: 1,
+                vy: -1.1
+            });
+        }
+
+        function triggerHiatoSplitVisual(enemy) {
+            const syls = enemy.syllables || [enemy.word.slice(0, 2).toUpperCase(), enemy.word.slice(2).toUpperCase()];
+            const leftPart = syls[0];
+            const rightPart = syls.slice(1).join('-');
+
+            gameState.splitHalves.push(
+                { x: enemy.x - 25, y: enemy.y, vx: -3.2, vy: -1.8, text: leftPart + ' -', color: '#ff00ea', alpha: 1 },
+                { x: enemy.x + 25, y: enemy.y, vx: 3.2, vy: -1.8, text: '- ' + rightPart, color: '#00f3ff', alpha: 1 }
+            );
+
+            gameState.shockwaves.push({
+                x: enemy.x,
+                y: enemy.y,
+                radius: 10,
+                maxRadius: 135,
+                color: '#ff00ea',
+                alpha: 1
+            });
+        }
+
+        function triggerDiacriticOverloadShockwave(x, y, color) {
+            if (gameState.perks.diacritica <= 0) return;
+
+            gameState.shockwaves.push({
+                x,
+                y,
+                radius: 15,
+                maxRadius: 190,
+                color,
+                alpha: 1
+            });
+
+            // Empuja hacia arriba a los enemigos cercanos
+            gameState.enemies.forEach(other => {
+                const dist = Math.hypot(other.x - x, other.y - y);
+                if (dist < 190 && !other.isBoss) {
+                    other.y = Math.max(30, other.y - 28 * gameState.perks.diacritica);
+                }
+            });
+        }
+
+        function triggerScreenShake() {
+            document.body.classList.remove('shake-effect');
+            void document.body.offsetWidth;
+            document.body.classList.add('shake-effect');
+        }
+
+        /* ============================================================================
+         * 7. LÓGICA DE COMBATE ORTOGRÁFICO Y ENTRADA DE TECLADO INTELIGENTE
+         * ============================================================================ */
+        const VOWEL_TO_ACCENT = { 'a': 'á', 'e': 'é', 'i': 'í', 'o': 'ó', 'u': 'ú' };
+        const ACCENT_TO_BASE = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u' };
+
+        function setTildeArmed(state) {
+            gameState.tildeArmed = state;
+            if (state) gameState.dieresisArmed = false;
+            updateArmButtonsUI();
+        }
+
+        function setDieresisArmed(state) {
+            gameState.dieresisArmed = state;
+            if (state) gameState.tildeArmed = false;
+            updateArmButtonsUI();
+        }
+
+        function updateArmButtonsUI() {
+            const btnTilde = document.getElementById('btnArmTilde');
+            const btnDieresis = document.getElementById('btnArmDieresis');
+            if (!btnTilde || !btnDieresis) return;
+
+            if (gameState.tildeArmed) {
+                btnTilde.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-600 border-2 border-white text-white text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#ff00ea] scale-105';
+            } else {
+                btnTilde.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+            }
+
+            if (gameState.dieresisArmed) {
+                btnDieresis.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-500 border-2 border-white text-slate-950 text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#00f3ff] scale-105';
+            } else {
+                btnDieresis.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+            }
+        }
+
+        // Penalización reactiva de la Mecánica 1: Teclear 'H' contra un derivado culto con O (ej. 'hosario', 'hovario')
+        function triggerEtymologicalHPenalty(targetDrone) {
+            audio.playErrorAlarm();
+            triggerScreenShake();
+            resetStreak();
+
+            if (gameState.perks.etimo > 0) {
+                spawnFloatingText(
+                    targetDrone.x,
+                    targetDrone.y - 25,
+                    '🛡️ ¡ESCUDO ETIMOLÓGICO BLOQUEÓ LA ACELERACIÓN DE ERROR!',
+                    '#10b981',
+                    14
+                );
+            } else {
+                targetDrone.speed *= 1.25;
+                targetDrone.shieldBoosted = true;
+                spawnFloatingText(
+                    targetDrone.x,
+                    targetDrone.y - 28,
+                    '¡ERROR ETIMOLÓGICO! Raíz culta con O no lleva H (+25% Vel)',
+                    '#ff2a54',
+                    15
+                );
+            }
+        }
+
+        function resetStreak() {
+            gameState.streak = 0;
+            gameState.comboMultiplier = 1;
+            updateHud();
+        }
+
+        function incrementStreak(isDiacriticHit = false) {
+            const gain = (isDiacriticHit && gameState.perks.diacritica > 0) ? 2 : 1;
+            gameState.streak += gain;
+            if (gameState.streak > gameState.maxStreak) {
+                gameState.maxStreak = gameState.streak;
+            }
+            if (gameState.streak >= 30) gameState.comboMultiplier = 8;
+            else if (gameState.streak >= 16) gameState.comboMultiplier = 4;
+            else if (gameState.streak >= 6) gameState.comboMultiplier = 2;
+            else gameState.comboMultiplier = 1;
+        }
+
+        function processPlayerCharInput(rawChar, isSpaceDieresisTrigger = false) {
+            if (!gameState.running || gameState.paused) return;
+
+            let char = rawChar.toLowerCase();
+
+            // Si el cañón de tilde o diéresis estaba armado, transformar la vocal
+            if (gameState.tildeArmed && VOWEL_TO_ACCENT[char]) {
+                char = VOWEL_TO_ACCENT[char];
+                setTildeArmed(false);
+            } else if (gameState.dieresisArmed && char === 'u') {
+                char = 'ü';
+                setDieresisArmed(false);
+            }
+
+            // Buscar el enemigo actualmente fijado (lock-on)
+            let lockedEnemy = gameState.enemies.find(e => e.id === gameState.lockedEnemyId);
+            if (!lockedEnemy) {
+                gameState.lockedEnemyId = null;
+            }
+
+            // Si se presionó Barra Espaciadora y el objetivo fijado espera exactamente 'ü', disparar directo
+            if (isSpaceDieresisTrigger) {
+                if (lockedEnemy && lockedEnemy.word[lockedEnemy.typedIndex] === 'ü') {
+                    char = 'ü';
+                    setDieresisArmed(false);
+                } else {
+                    // O si hay un enemigo en pantalla cuya primera letra o siguiente sea 'ü', armar torreta
+                    setDieresisArmed(!gameState.dieresisArmed);
+                    return;
+                }
+            }
+
+            // Si NO hay enemigo fijado todavía, buscar cuál fijar
+            if (!lockedEnemy) {
+                // Comprobar primero la Trampa de la H Fantasma:
+                // Si el jugador presiona 'h', no hay ningún enemigo que empiece por 'h', pero SÍ hay drones derivados sin H ('osario', 'ovario', etc.)
+                if (char === 'h') {
+                    const hasValidHTarget = gameState.enemies.some(e => e.word[0] === 'h');
+                    const derivativeDrone = gameState.enemies.find(e => e.isDerivativeWithoutH);
+                    if (!hasValidHTarget && derivativeDrone) {
+                        triggerEtymologicalHPenalty(derivativeDrone);
+                        return;
+                    }
+                }
+
+                // Buscar el enemigo más cercano al núcleo (mayor Y) cuya primera letra coincida
+                const candidates = gameState.enemies
+                    .filter(e => e.word[0] === char)
+                    .sort((a, b) => b.y - a.y);
+
+                if (candidates.length > 0) {
+                    lockedEnemy = candidates[0];
+                    gameState.lockedEnemyId = lockedEnemy.id;
+                } else {
+                    // Verificar si intentó empezar una palabra con tilde sin ponerle tilde
+                    const missedAccentCandidate = gameState.enemies.find(e => ACCENT_TO_BASE[e.word[0]] === char);
+                    if (missedAccentCandidate) {
+                        audio.playErrorAlarm();
+                        spawnFloatingText(missedAccentCandidate.x, missedAccentCandidate.y - 20, '¡FALTA TILDE INICIAL! Usa [Tab/+] o tilde', '#ff00ea', 14);
+                    }
+                    return;
+                }
+            }
+
+            // Ya tenemos un enemigo fijado (lockedEnemy): evaluar la letra esperada
+            const expectedChar = lockedEnemy.word[lockedEnemy.typedIndex];
+
+            // Caso 1: El jugador presiona 'h' por error al inicio o mitad de un derivado culto sin H
+            if (char === 'h' && expectedChar !== 'h' && lockedEnemy.isDerivativeWithoutH) {
+                triggerEtymologicalHPenalty(lockedEnemy);
+                return;
+            }
+
+            // Caso 2: Coincidencia exacta
+            if (char === expectedChar) {
+                handleSuccessfulLetterHit(lockedEnemy, expectedChar);
+                return;
+            }
+
+            // Caso 3: El jugador escribió la vocal sin tilde cuando requería tilde ('í', 'ú', 'á', 'é', 'ó')
+            if ( expectedChar !== 'ü' && ACCENT_TO_BASE[expectedChar] === char) {
+                audio.playErrorAlarm();
+                resetStreak();
+                const msg = lockedEnemy.type === 'hiato'
+                    ? `¡ALERTA DE HIATO! Se requiere tilde en '${expectedChar.toUpperCase()}' (Usa [Tab/+] o ´)`
+                    : `¡FALTA TILDE! Esta palabra exige '${expectedChar.toUpperCase()}'`;
+                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, msg, '#ff00ea', 15);
+                return;
+            }
+
+            // Caso 4: El jugador escribió 'u' normal cuando se requería diéresis 'ü'
+            if (expectedChar === 'ü' && char === 'u') {
+                audio.playErrorAlarm();
+                resetStreak();
+                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, '¡FALTA DIÉRESIS (¨)! Pulsa [ESPACIO] o escribe ü', '#00f3ff', 15);
+                return;
+            }
+
+            // Caso 5: Error de homófono B/V o LL/Y
+            if (lockedEnemy.wrongChar && char === lockedEnemy.wrongChar) {
+                audio.playErrorAlarm();
+                resetStreak();
+                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, `¡ERROR HOMÓFONO! ${lockedEnemy.context} se escribe con '${expectedChar.toUpperCase()}'`, '#ff2a54', 15);
+                return;
+            }
+
+            // Error general de tecleo
+            audio.playErrorAlarm();
+            resetStreak();
+        }
+
+        function handleSuccessfulLetterHit(enemy, hitChar) {
+            enemy.typedIndex++;
+
+            const turretX = canvas.width / 2;
+            const turretY = canvas.height - 95;
+
+            const isHiatoAccent = (enemy.type === 'hiato' && (hitChar === 'í' || hitChar === 'ú'));
+            const isDieresisHit = (hitChar === 'ü');
+            const isAnyDiacritic = ['á', 'é', 'í', 'ó', 'ú', 'ü'].includes(hitChar);
+
+            // Actualizar núcleos A-E-I-O-U si es el Jefe Murciélago Pentavocálico
+            if (enemy.isBoss) {
+                const baseVowel = ACCENT_TO_BASE[hitChar] || hitChar;
+                if (['a', 'e', 'i', 'o', 'u'].includes(baseVowel)) {
+                    enemy.vowelsLit[baseVowel] = true;
+                }
+            }
+
+            // Efectos de láser y audio según el tipo de impacto ortográfico
+            if (isHiatoAccent) {
+                audio.playHiatoExplosion();
+                gameState.lasers.push({
+                    x1: turretX, y1: turretY,
+                    x2: enemy.x, y2: enemy.y,
+                    color: '#ff00ea',
+                    width: 8,
+                    alpha: 1,
+                    isDual: false
+                });
+                triggerHiatoSplitVisual(enemy);
+                triggerDiacriticOverloadShockwave(enemy.x, enemy.y, '#ff00ea');
+                spawnFloatingText(enemy.x, enemy.y - 30, `¡RUPTURA DE HIATO (${ (enemy.syllables || []).join(' - ') })!`, '#ff00ea', 16);
+            } else if (isDieresisHit) {
+                audio.playDieresisTwinLaser();
+                enemy.revealed = true;
+                gameState.lasers.push({
+                    x1: turretX, y1: turretY,
+                    x2: enemy.x, y2: enemy.y,
+                    color: '#00f3ff',
+                    width: 4,
+                    alpha: 1,
+                    isDual: true
+                });
+                triggerDiacriticOverloadShockwave(enemy.x, enemy.y, '#00f3ff');
+                spawnFloatingText(enemy.x, enemy.y - 30, '¡DOBLE CAÑÓN DE DIÉRESIS (Ü) ACTIVADO!', '#00f3ff', 15);
+            } else {
+                audio.playLaser(enemy.typedIndex, gameState.cervantesMecha);
+                gameState.lasers.push({
+                    x1: turretX, y1: turretY,
+                    x2: enemy.x, y2: enemy.y,
+                    color: gameState.cervantesMecha ? '#ffd700' : enemy.color,
+                    width: gameState.cervantesMecha ? 4.5 : 3,
+                    alpha: 1,
+                    isDual: false
+                });
+                if (isAnyDiacritic) {
+                    triggerDiacriticOverloadShockwave(enemy.x, enemy.y, '#a855f7');
+                }
+            }
+
+            spawnParticles(enemy.x, enemy.y, enemy.color, isHiatoAccent || isDieresisHit ? 28 : 10);
+            incrementStreak(isAnyDiacritic);
+
+            // Sumar puntos por letra
+            let pts = 25 * gameState.comboMultiplier;
+            if (gameState.perks.aba > 0) pts = Math.round(pts * (1 + 0.2 * gameState.perks.aba));
+            gameState.score += pts;
+
+            // ¿Se completó toda la palabra del enemigo?
+            if (enemy.typedIndex >= enemy.word.length) {
+                handleEnemyWordCompleted(enemy);
+            }
+
+            updateHud();
+        }
+
+        function handleEnemyWordCompleted(enemy) {
+            // Si es el Jefe Murciélago Pentavocálico
+            if (enemy.isBoss) {
+                enemy.bossHp--;
+                audio.playHiatoExplosion();
+                spawnParticles(enemy.x, enemy.y, '#ffd700', 50, 1.6);
+                gameState.score += 500 * gameState.comboMultiplier;
+
+                if (enemy.bossHp <= 0) {
+                    // Jefe derrotado
+                    spawnFloatingText(enemy.x, enemy.y, '🦇 ¡MURCIÉLAGO PENTAVOCÁLICO DERROTADO! +2000 PTS', '#ffd700', 20);
+                    gameState.score += 2000;
+                    gameState.enemies = gameState.enemies.filter(e => e.id !== enemy.id);
+                    gameState.lockedEnemyId = null;
+                    gameState.bossActive = false;
+                    gameState.waveKills = gameState.waveTargetKills;
+                    checkWaveCompletion();
+                } else {
+                    // Cargar la siguiente palabra pentavocálica
+                    enemy.wordPoolIndex = (enemy.wordPoolIndex + 1) % LEXICON_DB.pentavocalicas.length;
+                    const nextWordObj = LEXICON_DB.pentavocalicas[enemy.wordPoolIndex];
+                    enemy.word = nextWordObj.word;
+                    enemy.rule = nextWordObj.rule;
+                    enemy.typedIndex = 0;
+                    enemy.vowelsLit = { a: false, e: false, i: false, o: false, u: false };
+                    spawnFloatingText(enemy.x, enemy.y - 40, `¡NÚCLEO PENTAVOCÁLICO DAÑADO! (${enemy.bossHp} restantes)`, '#00ff88', 16);
+                }
+                return;
+            }
+
+            // Si es un Jefe de Escudo de 'La H Fantasma' (hueso, huevo, hueco, huérfano), se divide en drones derivados SIN H
+            if (enemy.type === 'hMutant' && enemy.childrenData) {
+                audio.playHiatoExplosion();
+                spawnFloatingText(
+                    enemy.x,
+                    enemy.y - 20,
+                    `¡ESCUDO ROTO! Derivados con raíz 'O-' pierden la H`,
+                    '#00ff88',
+                    15
+                );
+
+                const count = enemy.childrenData.length;
+                enemy.childrenData.forEach((childObj, idx) => {
+                    const offset = (idx - (count - 1) / 2) * 115;
+                    const clampedX = Math.max(90, Math.min(canvas.width - 90, enemy.x + offset));
+                    createEnemy('hDerivative', childObj, clampedX, Math.max(40, enemy.y - 15));
+                });
+            } else {
+                gameState.waveKills++;
+            }
+
+            spawnParticles(enemy.x, enemy.y, enemy.color, 30, 1.3);
+            gameState.enemies = gameState.enemies.filter(e => e.id !== enemy.id);
+            gameState.lockedEnemyId = null;
+
+            checkWaveCompletion();
+        }
+
+        function checkWaveCompletion() {
+            const anyRemaining = gameState.enemies.length > 0;
+            if (gameState.waveKills >= gameState.waveTargetKills && !anyRemaining && !gameState.bossActive) {
+                gameState.paused = true;
+                audio.playFanfare(false);
+                document.getElementById('perkModal').classList.remove('hidden');
+                document.getElementById('perkModal').classList.add('flex');
+            }
+        }
+
+        /* ============================================================================
+         * 8. ACTUALIZACIÓN DEL HUD Y ESTADO VISUAL
+         * ============================================================================ */
+        function updateHud() {
+            document.getElementById('hudScore').textContent = String(gameState.score).padStart(6, '0');
+            document.getElementById('hudCombo').textContent = `x${gameState.comboMultiplier}`;
+            document.getElementById('hudStreak').textContent = `(${gameState.streak} racha)`;
+            document.getElementById('hudWave').textContent = `OLEADA ${gameState.wave}`;
+
+            const hpPercent = Math.max(0, Math.round((gameState.hp / gameState.maxHp) * 100));
+            document.getElementById('hudHpText').textContent = `${gameState.hp}/${gameState.maxHp}`;
+            const hpBar = document.getElementById('hudHpBar');
+            hpBar.style.width = `${hpPercent}%`;
+
+            if (gameState.cervantesMecha) {
+                hpBar.className = 'h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-200 rounded-full transition-all duration-300';
+            } else if (hpPercent < 35) {
+                hpBar.className = 'h-full bg-gradient-to-r from-rose-600 to-red-400 rounded-full transition-all duration-300';
+            } else {
+                hpBar.className = 'h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-cyan-300 rounded-full transition-all duration-300';
+            }
+
+            // Actualizar visor inferior de palabra fijada y regla ortográfica
+            const lockedEnemy = gameState.enemies.find(e => e.id === gameState.lockedEnemyId);
+            const wordDisplay = document.getElementById('lockedWordDisplay');
+            const contextBadge = document.getElementById('targetContextBadge');
+            const ruleTitle = document.getElementById('activeRuleTitle');
+            const ruleDesc = document.getElementById('activeRuleDesc');
+
+            if (lockedEnemy) {
+                const typedPart = lockedEnemy.word.slice(0, lockedEnemy.typedIndex).toUpperCase();
+                const nextChar = lockedEnemy.word[lockedEnemy.typedIndex] ? lockedEnemy.word[lockedEnemy.typedIndex].toUpperCase() : '';
+                const restPart = lockedEnemy.word.slice(lockedEnemy.typedIndex + 1).toUpperCase();
+
+                wordDisplay.innerHTML = `
+                    <span class="text-emerald-400">${typedPart}</span><span class="text-white bg-fuchsia-600/80 px-1 rounded underline decoration-2 animate-pulse">${nextChar}</span><span class="text-slate-300">${restPart}</span>
+                `;
+                contextBadge.textContent = lockedEnemy.context;
+                contextBadge.className = 'text-[10px] font-mono-code uppercase tracking-widest text-cyan-300 mb-0.5';
+
+                ruleTitle.textContent = `BLANCO FIJADO: ${lockedEnemy.word.toUpperCase()}`;
+                ruleDesc.textContent = lockedEnemy.rule;
+            } else {
+                wordDisplay.innerHTML = `<span class="text-slate-500 text-sm font-normal">TECLEA LA INICIAL DE UN ENEMIGO</span>`;
+                contextBadge.textContent = 'SISTEMA DE PUNTERÍA LÉXICA ACTIVO';
+                contextBadge.className = 'text-[10px] font-mono-code uppercase tracking-widest text-slate-400 mb-0.5';
+                ruleTitle.textContent = 'ESPERANDO OBJETIVO...';
+                ruleDesc.textContent = 'Usa [Tab/+] para Tilde (´) o [Espacio] para Diéresis (¨).';
+            }
+
+            // Mostrar iconos de Perks activos
+            const perksContainer = document.getElementById('hudPerksContainer');
+            if (perksContainer) {
+                let pHtml = '';
+                if (gameState.perks.aba > 0) pHtml += `<span class="px-2 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-[10px] text-cyan-200 font-mono-code">⏳ -ABA v${gameState.perks.aba}</span>`;
+                if (gameState.perks.etimo > 0) pHtml += `<span class="px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-400 text-[10px] text-emerald-200 font-mono-code">🛡️ ETIMO v${gameState.perks.etimo}</span>`;
+                if (gameState.perks.diacritica > 0) pHtml += `<span class="px-2 py-0.5 rounded bg-fuchsia-500/20 border border-fuchsia-400 text-[10px] text-fuchsia-200 font-mono-code">⚡ DIACRÍTICA v${gameState.perks.diacritica}</span>`;
+                perksContainer.innerHTML = pHtml;
+            }
+        }
+
+        /* ============================================================================
+         * 9. RENDERIZADO DEL LIENZO (TORRETA / CERVANTES MECHA, ENEMIGOS, JEFES, RAYOS)
+         * ============================================================================ */
+        function drawTurret() {
+            const cx = canvas.width / 2;
+            const cy = canvas.height - 92;
+
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            if (gameState.cervantesMecha) {
+                // NAVE SECRETA DORADA: CERVANTES MECHA CON CAÑONES DE PLUMA LÁSER
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 22;
+
+                // Halo de escudo dorado
+                ctx.beginPath();
+                ctx.arc(0, 0, 42, Math.PI, 0, false);
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.55)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Alas de Mecha Dorado
+                ctx.fillStyle = '#b45309';
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-45, 18);
+                ctx.lineTo(-18, -16);
+                ctx.lineTo(18, -16);
+                ctx.lineTo(45, 18);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Cañón central de Pluma de Oro (Quill Laser)
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.moveTo(0, -38);
+                ctx.lineTo(-10, -8);
+                ctx.lineTo(0, 4);
+                ctx.lineTo(10, -8);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Núcleo Cervantes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(0, -12, 5, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // TORRETA CIBERPUNK ESTÁNDAR
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 16;
+
+                ctx.fillStyle = '#0f172a';
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 2;
+
+                // Base hexagonal
+                ctx.beginPath();
+                ctx.moveTo(-28, 16);
+                ctx.lineTo(-16, -12);
+                ctx.lineTo(16, -12);
+                ctx.lineTo(28, 16);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Cañones gemelos
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(-10, -26, 5, 16);
+                ctx.fillRect(5, -26, 5, 16);
+            }
+
+            ctx.restore();
+        }
+
+        function drawPentavocalicBoss(boss) {
+            ctx.save();
+            ctx.translate(boss.x, boss.y);
+            boss.wingAngle += 0.08;
+            const wingFlap = Math.sin(boss.wingAngle) * 18;
+
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 20;
+
+            // Alas Cibernéticas de Murciélago Neón
+            ctx.fillStyle = 'rgba(88, 28, 135, 0.85)';
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 2.5;
+
+            // Ala izquierda
+            ctx.beginPath();
+            ctx.moveTo(-30, 0);
+            ctx.lineTo(-135, -35 + wingFlap);
+            ctx.lineTo(-110, 25 + wingFlap * 0.5);
+            ctx.lineTo(-65, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Ala derecha
+            ctx.beginPath();
+            ctx.moveTo(30, 0);
+            ctx.lineTo(135, -35 + wingFlap);
+            ctx.lineTo(110, 25 + wingFlap * 0.5);
+            ctx.lineTo(65, 12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Chasis central del Jefe
+            ctx.fillStyle = '#090d16';
+            ctx.strokeStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.roundRect(-95, -34, 190, 72, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            // Los 5 Núcleos de Energía (A - E - I - O - U)
+            const vowels = ['a', 'e', 'i', 'o', 'u'];
+            vowels.forEach((v, idx) => {
+                const vx = -64 + idx * 32;
+                const vy = -44;
+                const lit = boss.vowelsLit[v];
+
+                ctx.beginPath();
+                ctx.arc(vx, vy, 11, 0, Math.PI * 2);
+                ctx.fillStyle = lit ? '#00ff88' : '#1e293b';
+                ctx.strokeStyle = lit ? '#ffffff' : '#64748b';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = lit ? '#022c22' : '#94a3b8';
+                ctx.font = 'bold 11px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(v.toUpperCase(), vx, vy);
+            });
+
+            // Barra de Vida del Jefe
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-75, -22, 150, 6);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillRect(-75, -22, 150 * (boss.bossHp / boss.bossMaxHp), 6);
+
+            // Palabra Pentavocálica Activa
+            const typed = boss.word.slice(0, boss.typedIndex).toUpperCase();
+            const untyped = boss.word.slice(boss.typedIndex).toUpperCase();
+
+            ctx.font = '800 20px "JetBrains Mono"';
+            ctx.textAlign = 'center';
+            const totalW = ctx.measureText(boss.word.toUpperCase()).width;
+            let startX = -totalW / 2;
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#00ff88';
+            ctx.fillText(typed, startX, 8);
+            const typedW = ctx.measureText(typed).width;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(untyped, startX + typedW, 8);
+
+            // Subtítulo
+            ctx.font = '600 10px "JetBrains Mono"';
+            ctx.fillStyle = '#fde047';
+            ctx.textAlign = 'center';
+            ctx.fillText(boss.context, 0, 26);
+
+            ctx.restore();
+        }
+
+        function drawRegularEnemy(enemy) {
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+
+            const isLocked = (enemy.id === gameState.lockedEnemyId);
+
+            // Efecto de camuflaje parpadeante para enemigos sigilosos de Diéresis (güe/güi)
+            if (enemy.type === 'dieresis' && !enemy.revealed) {
+                enemy.stealthPhase += 0.07;
+                ctx.globalAlpha = 0.32 + Math.abs(Math.sin(enemy.stealthPhase)) * 0.45;
+            }
+
+            ctx.font = '800 17px "JetBrains Mono"';
+            const wordUpper = enemy.word.toUpperCase();
+            const textWidth = ctx.measureText(wordUpper).width;
+            const boxW = Math.max(125, textWidth + 34);
+            const boxH = 44;
+
+            ctx.shadowColor = isLocked ? '#ffffff' : enemy.color;
+            ctx.shadowBlur = isLocked ? 18 : 10;
+
+            // Fondo de la nave enemiga
+            ctx.fillStyle = isLocked ? 'rgba(15, 23, 42, 0.96)' : 'rgba(6, 10, 25, 0.88)';
+            ctx.strokeStyle = enemy.shieldBoosted ? '#ff2a54' : (isLocked ? '#ffffff' : enemy.color);
+            ctx.lineWidth = isLocked ? 2.5 : 1.6;
+
+            ctx.beginPath();
+            ctx.roundRect(-boxW / 2, -boxH / 2, boxW, boxH, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // Si es un enemigo de Hiato, dibujar línea divisoria de coraza en medio
+            if (enemy.type === 'hiato') {
+                ctx.strokeStyle = 'rgba(255, 0, 234, 0.45)';
+                ctx.beginPath();
+                ctx.moveTo(0, -boxH / 2);
+                ctx.lineTo(0, boxH / 2);
+                ctx.stroke();
+            }
+
+            // Etiqueta superior de contexto ortográfico
+            ctx.font = '600 10px "JetBrains Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = enemy.shieldBoosted ? '#fda4af' : '#94a3b8';
+            ctx.fillText(enemy.context, 0, -boxH / 2 - 6);
+
+            // Renderizar letras tecleadas vs pendientes
+            const typed = wordUpper.slice(0, enemy.typedIndex);
+            const untyped = wordUpper.slice(enemy.typedIndex);
+
+            ctx.font = '800 17px "JetBrains Mono"';
+            const startX = -textWidth / 2;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+
+            ctx.fillStyle = '#00ff88';
+            ctx.fillText(typed, startX, 2);
+            const typedW = ctx.measureText(typed).width;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(untyped, startX + typedW, 2);
+
+            ctx.restore();
+        }
+
+        /* ============================================================================
+         * 10. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA (60 FPS)
+         * ============================================================================ */
+        function gameLoop(timestamp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Fondo de estrellas y cuadrícula ciberpunk
+            ctx.fillStyle = '#060714';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            gameState.stars.forEach(st => {
+                if (gameState.running && !gameState.paused) {
+                    st.y += st.speed * (1 + (gameState.comboMultiplier - 1) * 0.25);
+                    if (st.y > canvas.height) {
+                        st.y = 0;
+                        st.x = Math.random() * canvas.width;
+                    }
+                }
+                ctx.fillStyle = `rgba(0, 243, 255, ${st.alpha})`;
+                ctx.fillRect(st.x, st.y, st.size, st.size);
+            });
+
+            if (gameState.running) {
+                // 2. Spawner de enemigos
+                if (!gameState.paused && timestamp - gameState.lastSpawnTime > gameState.spawnInterval) {
+                    spawnWaveEnemy();
+                    gameState.lastSpawnTime = timestamp;
+                }
+
+                // 3. Dibujar línea defensiva del Núcleo Servidor
+                const coreLineY = canvas.height - 90;
+                ctx.strokeStyle = gameState.cervantesMecha ? 'rgba(255, 215, 0, 0.35)' : 'rgba(0, 243, 255, 0.25)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, coreLineY);
+                ctx.lineTo(canvas.width, coreLineY);
+                ctx.stroke();
+
+                // 4. Actualizar y dibujar enemigos
+                for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                    const enemy = gameState.enemies[i];
+                    if (!gameState.paused) {
+                        enemy.y += enemy.speed;
+                    }
+
+                    if (enemy.isBoss) {
+                        drawPentavocalicBoss(enemy);
+                    } else {
+                        drawRegularEnemy(enemy);
+                    }
+
+                    // ¿El enemigo impactó contra el Núcleo del Servidor?
+                    if (enemy.y >= coreLineY - 12) {
+                        audio.playErrorAlarm();
+                        triggerScreenShake();
+                        resetStreak();
+
+                        const dmg = enemy.isBoss ? 50 : 20;
+                        gameState.hp = Math.max(0, gameState.hp - dmg);
+                        spawnParticles(enemy.x, coreLineY, '#ff2a54', 32, 1.4);
+                        spawnFloatingText(enemy.x, coreLineY - 30, `¡IMPACTO EN EL SERVIDOR (-${dmg}% INTEGRIDAD)!`, '#ff2a54', 15);
+
+                        if (enemy.id === gameState.lockedEnemyId) {
+                            gameState.lockedEnemyId = null;
+                        }
+
+                        if (enemy.isBoss) {
+                            // El jefe retrocede a la parte superior si toca el núcleo
+                            enemy.y = 110;
+                        } else {
+                            gameState.enemies.splice(i, 1);
+                            gameState.waveKills++;
+                        }
+
+                        updateHud();
+
+                        if (gameState.hp <= 0) {
+                            triggerGameOver(false);
+                            break;
+                        } else {
+                            checkWaveCompletion();
+                        }
+                    }
+                }
+
+                // 5. Dibujar Rayos Láser y Doble Cañón de Diéresis
+                for (let i = gameState.lasers.length - 1; i >= 0; i--) {
+                    const l = gameState.lasers[i];
+                    ctx.save();
+                    ctx.strokeStyle = l.color;
+                    ctx.shadowColor = l.color;
+                    ctx.shadowBlur = 15;
+                    ctx.globalAlpha = l.alpha;
+                    ctx.lineWidth = l.width;
+
+                    if (l.isDual) {
+                        // Dos láseres paralelos cian para la diéresis (¨)
+                        ctx.beginPath();
+                        ctx.moveTo(l.x1 - 12, l.y1);
+                        ctx.lineTo(l.x2 - 12, l.y2);
+                        ctx.moveTo(l.x1 + 12, l.y1);
+                        ctx.lineTo(l.x2 + 12, l.y2);
+                        ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(l.x1, l.y1);
+                        ctx.lineTo(l.x2, l.y2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+
+                    l.alpha -= 0.08;
+                    if (l.alpha <= 0) gameState.lasers.splice(i, 1);
+                }
+
+                // 6. Dibujar Sílabas Partidas por Ruptura de Hiato
+                for (let i = gameState.splitHalves.length - 1; i >= 0; i--) {
+                    const sh = gameState.splitHalves[i];
+                    sh.x += sh.vx;
+                    sh.y += sh.vy;
+                    sh.alpha -= 0.022;
+
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0, sh.alpha);
+                    ctx.font = '900 18px Orbitron';
+                    ctx.fillStyle = sh.color;
+                    ctx.shadowColor = sh.color;
+                    ctx.shadowBlur = 12;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(sh.text, sh.x, sh.y);
+                    ctx.restore();
+
+                    if (sh.alpha <= 0) gameState.splitHalves.splice(i, 1);
+                }
+
+                // 7. Dibujar Ondas Expansivas (Ruptura de Hiato y Sobrecarga Diacrítica)
+                for (let i = gameState.shockwaves.length - 1; i >= 0; i--) {
+                    const sw = gameState.shockwaves[i];
+                    sw.radius += 6;
+                    sw.alpha = 1 - (sw.radius / sw.maxRadius);
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = sw.color;
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = Math.max(0, sw.alpha);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    if (sw.radius >= sw.maxRadius) gameState.shockwaves.splice(i, 1);
+                }
+
+                // 8. Dibujar Torreta Central / Cervantes Mecha
+                drawTurret();
+            }
+
+            // 9. Actualizar y dibujar Partículas
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.026;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+                ctx.restore();
+
+                if (p.alpha <= 0) gameState.particles.splice(i, 1);
+            }
+
+            // 10. Actualizar y dibujar Textos Flotantes de Retroalimentación Ortográfica
+            for (let i = gameState.floatingTexts.length - 1; i >= 0; i--) {
+                const ft = gameState.floatingTexts[i];
+                ft.y += ft.vy;
+                ft.alpha -= 0.014;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, ft.alpha);
+                ctx.font = `700 ${ft.size}px "JetBrains Mono"`;
+                ctx.fillStyle = ft.color;
+                ctx.shadowColor = '#000000';
+                ctx.shadowBlur = 6;
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+
+                if (ft.alpha <= 0) gameState.floatingTexts.splice(i, 1);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /* ============================================================================
+         * 11. GESTIÓN DE PARTIDA, OLEADAS Y CONTROLES DE USUARIO
+         * ============================================================================ */
+        function startGame(startWave = 1, summonBossImmediately = false) {
+            audio.init();
+            gameState.running = true;
+            gameState.paused = false;
+            gameState.score = 0;
+            gameState.streak = 0;
+            gameState.maxStreak = 0;
+            gameState.comboMultiplier = 1;
+            gameState.wave = startWave;
+            gameState.waveSpawned = 0;
+            gameState.waveKills = 0;
+            gameState.waveTargetKills = 6 + startWave * 2;
+            gameState.maxHp = gameState.cervantesMecha ? 150 : 100;
+            gameState.hp = gameState.maxHp;
+            gameState.enemies = [];
+            gameState.lasers = [];
+            gameState.particles = [];
+            gameState.floatingTexts = [];
+            gameState.shockwaves = [];
+            gameState.splitHalves = [];
+            gameState.lockedEnemyId = null;
+            gameState.bossActive = false;
+            gameState.lastSpawnTime = performance.now();
+
+            document.getElementById('titleScreen').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.remove('flex');
+            document.getElementById('hudTop').classList.remove('hidden');
+            document.getElementById('hudBottom').classList.remove('hidden');
+
+            if (gameState.cervantesMecha) {
+                document.getElementById('mechaBadgeHud').classList.remove('hidden');
+            }
+
+            updateHud();
+            audio.startMusicLoop(() => gameState.comboMultiplier);
+
+            if (summonBossImmediately) {
+                spawnPentavocalicBoss();
+            } else {
+                spawnWaveEnemy();
+            }
+        }
+
+        function triggerGameOver(isVictory = false) {
+            gameState.running = false;
+            audio.stopMusicLoop();
+
+            const modal = document.getElementById('gameOverModal');
+            const title = document.getElementById('endGameTitle');
+            const sub = document.getElementById('endGameSubtitle');
+            const icon = document.getElementById('endGameIcon');
+
+            if (isVictory) {
+                icon.textContent = '👑';
+                title.textContent = '¡VICTORIA ACADÉMICA SUPREMA!';
+                sub.textContent = 'Has purgado la rebelión de los barbarismos y dominado el Códice de la RAE.';
+            } else {
+                icon.textContent = '⚠️';
+                title.textContent = 'NÚCLEO SERVIDOR COMPROMETIDO';
+                sub.textContent = 'Los barbarismos han saturado la memoria principal. ¡Consulta el Códice RAE y vuelve a intentarlo!';
+            }
+
+            document.getElementById('finalScoreText').textContent = gameState.score;
+            document.getElementById('finalStreakText').textContent = gameState.maxStreak;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // Eventos de Teclado Global (Pantalla de Título + Combate en Tiempo Real)
+        window.addEventListener('keydown', (e) => {
+            // Si estamos en la pantalla de título, escuchar la palabra secreta 'electroencefalografista'
+            if (!gameState.running) {
+                if (document.activeElement === document.getElementById('secretInputBox')) return;
+                const key = e.key.toLowerCase();
+                if (key.length === 1 && key >= 'a' && key <= 'z') {
+                    if (key === SECRET_WORD[secretProgress]) {
+                        secretProgress++;
+                        audio.playLaser(secretProgress, true);
+                        renderSecretWordTracker();
+                        if (secretProgress >= SECRET_WORD.length) {
+                            unlockCervantesMecha();
+                        }
+                    } else if (key === SECRET_WORD[0]) {
+                        secretProgress = 1;
+                        renderSecretWordTracker();
+                    }
+                }
+                return;
+            }
+
+            if (gameState.paused) return;
+
+            // Modificadores inteligentes para Tilde (Tab, +, ´, ') y Diéresis (Espacio, *)
+            if (e.key === 'Tab' || e.key === '+' || e.key === 'Dead' || e.key === '´' || e.key === "'") {
+                if (e.key === 'Tab' || e.key === '+') e.preventDefault();
+                setTildeArmed(true);
+                return;
+            }
+
+            if (e.code === 'Space' || e.key === ' ') {
+                e.preventDefault();
+                processPlayerCharInput('ü', true);
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                gameState.lockedEnemyId = null;
+                setTildeArmed(false);
+                setDieresisArmed(false);
+                updateHud();
+                return;
+            }
+
+            if (e.key.length === 1) {
+                processPlayerCharInput(e.key, false);
+            }
+        });
+
+        // Input directo en la caja de texto del Easter Egg en la Pantalla de Título
+        document.getElementById('secretInputBox').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase().trim();
+            let matchCount = 0;
+            for (let i = 0; i < val.length && i < SECRET_WORD.length; i++) {
+                if (val[i] === SECRET_WORD[i]) matchCount++;
+                else break;
+            }
+            secretProgress = matchCount;
+            renderSecretWordTracker();
+            if (val === SECRET_WORD || secretProgress >= SECRET_WORD.length) {
+                unlockCervantesMecha();
+            }
+        });
+
+        // Botones de la Interfaz
+        document.getElementById('btnStartGame').addEventListener('click', () => {
+            const waveVal = parseInt(document.getElementById('selectStartWave').value, 10) || 1;
+            startGame(waveVal, waveVal === 4);
+        });
+
+        document.getElementById('btnStartBossDirect').addEventListener('click', () => {
+            startGame(4, true);
+        });
+
+        document.getElementById('btnSummonBossHud').addEventListener('click', () => {
+            if (gameState.running) {
+                spawnPentavocalicBoss();
+            }
+        });
+
+        document.getElementById('btnArmTilde').addEventListener('click', () => {
+            setTildeArmed(!gameState.tildeArmed);
+        });
+
+        document.getElementById('btnArmDieresis').addEventListener('click', () => {
+            processPlayerCharInput('ü', true);
+        });
+
+        // Modal Códice RAE
+        function openCodex() {
+            if (gameState.running) gameState.paused = true;
+            const modal = document.getElementById('codexModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCodex() {
+            const modal = document.getElementById('codexModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (gameState.running && document.getElementById('perkModal').classList.contains('hidden')) {
+                gameState.paused = false;
+                gameState.lastSpawnTime = performance.now();
+            }
+        }
+
+        document.getElementById('btnOpenCodexTitle').addEventListener('click', openCodex);
+        document.getElementById('btnOpenCodexHud').addEventListener('click', openCodex);
+        document.getElementById('btnCloseCodex').addEventListener('click', closeCodex);
+
+        // Toggle Música Synthwave
+        document.getElementById('btnToggleMusic').addEventListener('click', () => {
+            audio.musicEnabled = !audio.musicEnabled;
+            document.getElementById('musicIcon').textContent = audio.musicEnabled ? '🎵 ON' : '🔇 OFF';
+        });
+
+        // Selección de Perks Roguelike entre Oleadas
+        document.querySelectorAll('.perk-card').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const perkKey = btn.getAttribute('data-perk');
+                gameState.perks[perkKey]++;
+
+                if (perkKey === 'etimo') {
+                    const heal = Math.round(gameState.maxHp * 0.25);
+                    gameState.hp = Math.min(gameState.maxHp, gameState.hp + heal);
+                }
+
+                document.getElementById('perkModal').classList.add('hidden');
+                document.getElementById('perkModal').classList.remove('flex');
+
+                // Avanzar a la siguiente oleada
+                gameState.wave++;
+                gameState.waveSpawned = 0;
+                gameState.waveKills = 0;
+                gameState.waveTargetKills = 6 + gameState.wave * 2;
+                gameState.spawnInterval = Math.max(1500, 2900 - gameState.wave * 220);
+                gameState.paused = false;
+                gameState.lastSpawnTime = performance.now();
+
+                audio.playFanfare(false);
+                updateHud();
+                spawnFloatingText(canvas.width / 2, canvas.height / 2, `¡INICIANDO OLEADA ${gameState.wave}!`, '#00f3ff', 22);
+                spawnWaveEnemy();
+            });
+        });
+
+        // Botones de Fin de Partida
+        document.getElementById('btnRestartGame').addEventListener('click', () => {
+            startGame(1, false);
+        });
+
+        document.getElementById('btnReturnMenu').addEventListener('click', () => {
+            gameState.running = false;
+            audio.stopMusicLoop();
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.remove('flex');
+            document.getElementById('hudTop').classList.add('hidden');
+            document.getElementById('hudBottom').classList.add('hidden');
+            document.getElementById('titleScreen').classList.remove('hidden');
+        });
+
+        // Iniciar aplicación al cargar la ventana
+        window.onload = function () {
+            renderSecretWordTracker();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
