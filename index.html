@@ -30,7 +30,10 @@
             font-family: 'Inter', sans-serif;
             overflow: hidden;
             height: 100vh;
+            height: 100dvh;
             width: 100vw;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .font-cyber {
@@ -64,7 +67,7 @@
 
         .neon-border-magenta {
             border: 1px solid rgba(255, 0, 234, 0.5);
-            box-shadow: 0 0 15px rgba(255, 0, 234, 0.25), inset 0 0 15px rgba(255, 0, 234, 0.1);
+            box-shadow: 0 0 15px rgba(255, 0, 234, 0.25), inset 0 0 15px rgba(255, 0, 255, 0.1);
         }
 
         .neon-border-gold {
@@ -105,6 +108,30 @@
             animation: shakeScreen 0.3s cubic-bezier(.36,.07,.19,.97) both;
         }
 
+        /* Teclas del Teclado Táctico Ciberpunk Móvil */
+        .cyber-key {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.06s ease, background-color 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .cyber-key:active,
+        .cyber-key.key-pressed {
+            transform: scale(0.92);
+            background-color: rgba(0, 243, 255, 0.28) !important;
+            border-color: #00f3ff !important;
+            box-shadow: 0 0 12px rgba(0, 243, 255, 0.6);
+        }
+
+        /* Evitar zoom automático en inputs en iOS Safari */
+        @media (max-width: 640px) {
+            input, select {
+                font-size: 16px !important;
+            }
+        }
+
         /* Scrollbar personalizada para el Códice */
         ::-webkit-scrollbar {
             width: 6px;
@@ -121,162 +148,262 @@
         }
     </style>
 </head>
-<body class="relative flex flex-col justify-between overflow-hidden select-none">
+<body id="appBody" class="relative flex flex-col justify-between overflow-hidden select-none">
 
     <!-- Lienzo principal del juego a 60 FPS -->
-    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0"></canvas>
+    <canvas id="gameCanvas" class="absolute inset-0 w-full h-full z-0" style="touch-action: none;"></canvas>
     <div class="scanlines pointer-events-none absolute inset-0 z-10 opacity-40"></div>
 
     <!-- ==================== HUD SUPERIOR (EN JUEGO) ==================== -->
-    <header id="hudTop" class="relative z-20 hidden w-full px-3 sm:px-6 py-2.5 bg-slate-950/85 backdrop-blur-md border-b border-cyan-500/30">
-        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+    <header id="hudTop" class="relative z-20 hidden w-full px-2.5 sm:px-6 py-1.5 sm:py-2.5 bg-slate-950/85 backdrop-blur-md border-b border-cyan-500/30">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
             
-            <!-- Izquierda: Puntuación, Oleada y Combo -->
-            <div class="flex items-center gap-3 sm:gap-5">
+            <!-- Izquierda: Puntuación, Multiplicador y Oleada -->
+            <div class="flex items-center gap-2 sm:gap-5">
                 <div>
-                    <div class="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">Puntuación</div>
-                    <div id="hudScore" class="font-cyber text-lg sm:text-2xl font-black text-white tracking-wider">000000</div>
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-widest text-cyan-400 font-semibold">Puntos</div>
+                    <div id="hudScore" class="font-cyber text-sm sm:text-2xl font-black text-white tracking-wider">000000</div>
                 </div>
 
-                <div class="h-8 w-px bg-cyan-500/30"></div>
+                <div class="h-6 sm:h-8 w-px bg-cyan-500/30"></div>
 
                 <div>
-                    <div class="text-[10px] uppercase tracking-widest text-fuchsia-400 font-semibold">Multiplicador</div>
-                    <div class="flex items-center gap-1.5">
-                        <span id="hudCombo" class="font-cyber text-lg sm:text-2xl font-black text-fuchsia-400">x1</span>
-                        <span id="hudStreak" class="text-xs font-mono-code text-slate-400">(0 racha)</span>
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-widest text-fuchsia-400 font-semibold">Combo</div>
+                    <div class="flex items-center gap-1">
+                        <span id="hudCombo" class="font-cyber text-sm sm:text-2xl font-black text-fuchsia-400">x1</span>
+                        <span id="hudStreak" class="text-[10px] sm:text-xs font-mono-code text-slate-400">(0)</span>
                     </div>
                 </div>
 
-                <div class="h-8 w-px bg-cyan-500/30 hidden sm:block"></div>
+                <div class="h-6 sm:h-8 w-px bg-cyan-500/30"></div>
 
-                <div class="hidden sm:block">
-                    <div class="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold">Oleada</div>
-                    <div id="hudWave" class="font-cyber text-lg sm:text-xl font-bold text-emerald-300">OLEADA 1</div>
+                <div>
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-widest text-emerald-400 font-semibold">Oleada</div>
+                    <div id="hudWave" class="font-cyber text-xs sm:text-xl font-bold text-emerald-300">OLEADA 1</div>
                 </div>
             </div>
 
             <!-- Centro: Integridad del Servidor y Escudo Cervantes Mecha -->
-            <div class="flex-1 max-w-xs mx-2">
-                <div class="flex justify-between items-center text-xs mb-1">
-                    <span class="font-cyber text-[10px] tracking-wider text-cyan-300 flex items-center gap-1">
+            <div class="w-full sm:w-auto sm:flex-1 sm:max-w-xs order-3 sm:order-2">
+                <div class="flex justify-between items-center text-[10px] sm:text-xs mb-0.5 sm:mb-1">
+                    <span class="font-cyber text-[9px] sm:text-[10px] tracking-wider text-cyan-300 flex items-center gap-1">
                         <span>NÚCLEO SERVIDOR RAE</span>
-                        <span id="mechaBadgeHud" class="hidden px-1.5 py-0.5 text-[9px] bg-amber-500/20 border border-amber-400 text-amber-300 rounded font-bold">★ CERVANTES MECHA</span>
+                        <span id="mechaBadgeHud" class="hidden px-1.5 py-0.5 text-[8px] sm:text-[9px] bg-amber-500/20 border border-amber-400 text-amber-300 rounded font-bold">★ MECHA</span>
                     </span>
-                    <span id="hudHpText" class="font-mono-code font-bold text-emerald-400">100%</span>
+                    <span id="hudHpText" class="font-mono-code font-bold text-emerald-400">100/100</span>
                 </div>
-                <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700 p-0.5">
+                <div class="w-full h-2 sm:h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700 p-0.5">
                     <div id="hudHpBar" class="h-full bg-gradient-to-r from-emerald-500 via-cyan-400 to-cyan-300 rounded-full transition-all duration-300" style="width: 100%"></div>
                 </div>
             </div>
 
             <!-- Derecha: Perks activos y Controles Rápidos -->
-            <div class="flex items-center gap-1.5 sm:gap-2">
-                <div id="hudPerksContainer" class="hidden lg:flex items-center gap-1 mr-2"></div>
+            <div class="flex items-center gap-1 sm:gap-2 order-2 sm:order-3">
+                <div id="hudPerksContainer" class="hidden md:flex items-center gap-1 mr-1"></div>
 
-                <button id="btnSummonBossHud" title="Invocar Jefe Secreto: El Murciélago Pentavocálico" class="px-2.5 py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-400/50 text-purple-200 text-xs font-cyber tracking-wider transition flex items-center gap-1 shadow-lg shadow-purple-950/50">
+                <button id="btnSummonBossHud" title="Invocar Jefe Secreto: El Murciélago Pentavocálico" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-400/50 text-purple-200 text-[11px] sm:text-xs font-cyber tracking-wider transition flex items-center gap-1 shadow-lg shadow-purple-950/50">
                     <span>🦇</span>
-                    <span class="hidden md:inline">JEFE PENTAVOCÁLICO</span>
+                    <span class="hidden xl:inline">JEFE PENTAVOCÁLICO</span>
                 </button>
 
-                <button id="btnToggleMusic" title="Activar/Desactivar Pulso Synthwave Dinámico" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs transition">
+                <button id="btnToggleKeyboardHud" title="Mostrar/Ocultar Teclado Táctico en Pantalla" class="px-2 py-1 sm:py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-fuchsia-500/50 text-fuchsia-300 text-[11px] sm:text-xs font-mono-code transition">
+                    ⌨️
+                </button>
+
+                <button id="btnToggleMusic" title="Activar/Desactivar Pulso Synthwave Dinámico" class="px-2 py-1 sm:p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-[11px] sm:text-xs transition">
                     <span id="musicIcon">🎵 ON</span>
                 </button>
 
-                <button id="btnOpenCodexHud" title="Códice RAE y Pausa" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-200 text-xs font-cyber transition">
-                    📖 CÓDICE / PAUSA
+                <button id="btnOpenCodexHud" title="Códice RAE y Pausa" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-200 text-[11px] sm:text-xs font-cyber transition">
+                    📖 <span class="hidden sm:inline">CÓDICE /</span> PAUSA
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- ==================== HUD INFERIOR (FIJACIÓN DE BLANCO Y ARMAMENTO ORTOGRÁFICO) ==================== -->
-    <footer id="hudBottom" class="relative z-20 hidden w-full px-3 sm:px-6 py-2.5 bg-slate-950/90 backdrop-blur-md border-t border-cyan-500/30">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2.5">
-            
-            <!-- Indicador de Regla Ortográfica Activa -->
-            <div class="w-full md:w-1/3 flex items-center gap-2.5 bg-slate-900/90 border border-slate-800 px-3 py-2 rounded-xl">
-                <div id="ruleIconBox" class="w-9 h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-lg shrink-0">
-                    🎯
+    <!-- ==================== HUD INFERIOR (ESCRITURA TÁCTICA, FIJACIÓN DE BLANCO Y TECLADO MÓVIL/PC) ==================== -->
+    <footer id="hudBottom" class="relative z-20 hidden w-full px-2 sm:px-6 pt-1.5 pb-4 sm:py-2.5 bg-slate-950/95 backdrop-blur-md border-t border-cyan-500/30">
+        <div class="max-w-6xl mx-auto flex flex-col gap-1.5 sm:gap-2">
+
+            <!-- Fila Principal: Regla Activa + Visor/Input para Escribir + Cañones Tilde/Diéresis -->
+            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-1.5 sm:gap-2.5">
+                
+                <!-- Indicador de Regla Ortográfica Activa -->
+                <div class="w-full md:w-1/3 flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div id="ruleIconBox" class="w-7 h-7 sm:w-9 sm:h-9 rounded-lg bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center text-sm sm:text-lg shrink-0">
+                            🎯
+                        </div>
+                        <div class="overflow-hidden">
+                            <div id="activeRuleTitle" class="text-[10px] sm:text-[11px] font-cyber uppercase tracking-wider text-cyan-400 truncate">ESPERANDO OBJETIVO...</div>
+                            <div id="activeRuleDesc" class="text-[11px] sm:text-xs text-slate-300 truncate">Toca una nave o teclea su inicial para fijar blanco.</div>
+                        </div>
+                    </div>
+                    <button id="btnCycleTarget" type="button" title="Cambiar o soltar objetivo fijado" class="shrink-0 px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-cyan-500/40 text-[10px] font-mono-code text-cyan-300">
+                        🎯 CAMBIAR
+                    </button>
                 </div>
-                <div class="overflow-hidden">
-                    <div id="activeRuleTitle" class="text-[11px] font-cyber uppercase tracking-wider text-cyan-400 truncate">ESPERANDO OBJETIVO...</div>
-                    <div id="activeRuleDesc" class="text-xs text-slate-300 truncate">Teclea la primera letra de cualquier enemigo para fijar blanco.</div>
+
+                <!-- Visor Central de Palabra Fijada + Apartado Directo para Escribir -->
+                <div class="w-full md:w-1/3 flex flex-col items-center justify-center bg-slate-900/95 border border-cyan-500/40 px-3 py-1 sm:py-1.5 rounded-xl shadow-inner">
+                    <div class="w-full flex items-center justify-between gap-1">
+                        <span class="text-[9px] sm:text-[10px] font-mono-code uppercase tracking-widest text-slate-400 truncate" id="targetContextBadge">SIN BLANCO FIJADO</span>
+                        <button id="btnSwitchInputMode" type="button" class="text-[9px] sm:text-[10px] font-mono-code px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-400/40 text-cyan-300 hover:bg-cyan-500/25 shrink-0">
+                            ⌨️ Teclado Celular
+                        </button>
+                    </div>
+                    <div id="lockedWordDisplay" class="font-mono-code text-base sm:text-2xl font-extrabold tracking-widest min-h-[1.5rem] sm:min-h-[2rem] flex items-center justify-center">
+                        <span class="text-slate-500 text-xs sm:text-sm font-normal">TOCA O ESCRIBE PARA DISPARAR</span>
+                    </div>
+                    <!-- Apartado interactivo de escritura compatible con celular (Android/iOS) y PC -->
+                    <div class="w-full mt-1 flex items-center gap-1.5">
+                        <input
+                            id="combatInput"
+                            type="text"
+                            inputmode="text"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="none"
+                            spellcheck="false"
+                            placeholder="⌨️ Toca aquí para escribir con tu teclado..."
+                            aria-label="Campo de disparo ortográfico"
+                            class="w-full bg-slate-950/90 border border-cyan-500/40 focus:border-fuchsia-400 rounded-lg px-2.5 py-1 text-xs font-mono-code text-cyan-200 placeholder-slate-500 focus:outline-none"
+                        />
+                    </div>
+                </div>
+
+                <!-- Controles de Cañón de Tildes y Diéresis + Disparo Rápido 1-Toque -->
+                <div class="w-full md:w-1/3 flex flex-col gap-1.5">
+                    <div class="flex items-center justify-end gap-1.5 sm:gap-2">
+                        <button id="btnArmTilde" type="button" class="cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
+                            <span class="font-bold text-xs sm:text-sm text-fuchsia-300">´ CAÑÓN TILDE</span>
+                            <span class="text-[9px] sm:text-[10px] text-fuchsia-300/80">Toca o [Tab] / [+]</span>
+                        </button>
+
+                        <button id="btnArmDieresis" type="button" class="cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
+                            <span class="font-bold text-xs sm:text-sm text-cyan-300">¨ DIÉRESIS (Ü)</span>
+                            <span class="text-[9px] sm:text-[10px] text-cyan-300/80">Toca o [Espacio]</span>
+                        </button>
+                    </div>
+
+                    <!-- Barra de disparo rápido de 1 toque para vocales con tilde y diéresis -->
+                    <div id="quickAccentsBar" class="grid grid-cols-6 gap-1">
+                        <button type="button" data-char="á" class="cyber-key quick-char-btn py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/50 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm">Á</button>
+                        <button type="button" data-char="é" class="cyber-key quick-char-btn py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/50 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm">É</button>
+                        <button type="button" data-char="í" class="cyber-key quick-char-btn py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/50 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm">Í</button>
+                        <button type="button" data-char="ó" class="cyber-key quick-char-btn py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/50 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm">Ó</button>
+                        <button type="button" data-char="ú" class="cyber-key quick-char-btn py-1 rounded-lg bg-fuchsia-950/60 border border-fuchsia-500/50 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm">Ú</button>
+                        <button type="button" data-char="ü" class="cyber-key quick-char-btn py-1 rounded-lg bg-cyan-950/70 border border-cyan-400/60 text-cyan-200 font-mono-code font-bold text-xs sm:text-sm">Ü</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Visor Central de Palabra Fijada (Lock-On) -->
-            <div class="w-full md:w-1/3 flex flex-col items-center justify-center bg-slate-900/95 border border-cyan-500/40 px-4 py-1.5 rounded-xl shadow-inner">
-                <div class="text-[10px] font-mono-code uppercase tracking-widest text-slate-400 mb-0.5" id="targetContextBadge">SIN BLANCO FIJADO</div>
-                <div id="lockedWordDisplay" class="font-mono-code text-xl sm:text-2xl font-extrabold tracking-widest min-h-[2rem] flex items-center justify-center">
-                    <span class="text-slate-600 text-sm font-normal">TECLEA PARA DISPARAR</span>
+            <!-- ==================== TECLADO TÁCTICO CIBERPUNK EN PANTALLA (ESPAÑOL QWERTY + Ñ) ==================== -->
+            <div id="virtualKeyboardPanel" class="hidden w-full pt-1 select-none">
+                <div class="flex flex-col gap-1 max-w-2xl mx-auto">
+                    <!-- Fila 1: Q W E R T Y U I O P -->
+                    <div class="grid grid-cols-10 gap-1">
+                        <button type="button" data-vkey="q" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">Q</button>
+                        <button type="button" data-vkey="w" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">W</button>
+                        <button type="button" data-vkey="e" data-vowel="e" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/50 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">E</button>
+                        <button type="button" data-vkey="r" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">R</button>
+                        <button type="button" data-vkey="t" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">T</button>
+                        <button type="button" data-vkey="y" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">Y</button>
+                        <button type="button" data-vkey="u" data-vowel="u" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/50 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">U</button>
+                        <button type="button" data-vkey="i" data-vowel="i" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/50 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">I</button>
+                        <button type="button" data-vkey="o" data-vowel="o" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/50 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">O</button>
+                        <button type="button" data-vkey="p" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">P</button>
+                    </div>
+                    <!-- Fila 2: A S D F G H J K L Ñ -->
+                    <div class="grid grid-cols-10 gap-1">
+                        <button type="button" data-vkey="a" data-vowel="a" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/50 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">A</button>
+                        <button type="button" data-vkey="s" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">S</button>
+                        <button type="button" data-vkey="d" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">D</button>
+                        <button type="button" data-vkey="f" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">F</button>
+                        <button type="button" data-vkey="g" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">G</button>
+                        <button type="button" data-vkey="h" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-emerald-500/45 text-emerald-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">H</button>
+                        <button type="button" data-vkey="j" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">J</button>
+                        <button type="button" data-vkey="k" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">K</button>
+                        <button type="button" data-vkey="l" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">L</button>
+                        <button type="button" data-vkey="ñ" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/45 text-cyan-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">Ñ</button>
+                    </div>
+                    <!-- Fila 3: [´ TILDE] Z X C V B N M [¨ Ü] -->
+                    <div class="grid grid-cols-10 gap-1">
+                        <button type="button" id="vkeyTilde" class="cyber-key col-span-2 h-9 sm:h-10 rounded-lg bg-fuchsia-950/85 border border-fuchsia-500/60 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center">´ TILDE</button>
+                        <button type="button" data-vkey="z" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">Z</button>
+                        <button type="button" data-vkey="x" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">X</button>
+                        <button type="button" data-vkey="c" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">C</button>
+                        <button type="button" data-vkey="v" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-purple-500/45 text-purple-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">V</button>
+                        <button type="button" data-vkey="b" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-purple-500/45 text-purple-200 font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">B</button>
+                        <button type="button" data-vkey="n" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">N</button>
+                        <button type="button" data-vkey="m" class="cyber-key vkey-btn h-9 sm:h-10 rounded-lg bg-slate-900/95 border border-cyan-500/35 text-white font-mono-code font-bold text-sm sm:text-base flex items-center justify-center">M</button>
+                        <button type="button" id="vkeyDieresis" class="cyber-key h-9 sm:h-10 rounded-lg bg-cyan-950/85 border border-cyan-400/60 text-cyan-200 font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center">¨ Ü</button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Controles de Cañón de Tildes y Diéresis (Para cualquier teclado o táctil) -->
-            <div class="w-full md:w-1/3 flex items-center justify-end gap-2">
-                <button id="btnArmTilde" class="flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
-                    <span class="font-bold text-sm text-fuchsia-300">´ CAÑÓN TILDE</span>
-                    <span class="text-[10px] text-fuchsia-300/80">Tecla [Tab] / [+] o [´]</span>
-                </button>
-
-                <button id="btnArmDieresis" class="flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center">
-                    <span class="font-bold text-sm text-cyan-300">¨ TORRETA DIÉRESIS</span>
-                    <span class="text-[10px] text-cyan-300/80">Barra [Espacio] o [ü]</span>
-                </button>
             </div>
         </div>
     </footer>
 
     <!-- ==================== PANTALLA DE TÍTULO ==================== -->
-    <section id="titleScreen" class="relative z-30 flex-1 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="max-w-4xl w-full bg-slate-950/90 backdrop-blur-xl rounded-2xl neon-border-cyan p-5 sm:p-8 shadow-2xl my-auto">
+    <section id="titleScreen" class="relative z-30 flex-1 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" style="touch-action: pan-y;">
+        <div class="max-w-4xl w-full bg-slate-950/90 backdrop-blur-xl rounded-2xl neon-border-cyan p-4 sm:p-8 shadow-2xl my-auto">
             
             <!-- Encabezado y Título Animado -->
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-xs font-mono-code mb-3">
+            <div class="text-center mb-4 sm:mb-6">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-[10px] sm:text-xs font-mono-code mb-2 sm:mb-3">
                     <span>SISTEMA DE DEFENSA LINGÜÍSTICA RAE-2099</span>
                     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 </div>
-                <h1 class="font-cyber text-3xl sm:text-5xl md:text-6xl font-black tracking-tight neon-text-cyan animate-cyber-glow mb-2">
+                <h1 class="font-cyber text-2xl sm:text-5xl md:text-6xl font-black tracking-tight neon-text-cyan animate-cyber-glow mb-1 sm:mb-2">
                     NEON LEXICON
                 </h1>
-                <p class="font-cyber text-sm sm:text-lg text-fuchsia-400 tracking-widest uppercase">
+                <p class="font-cyber text-xs sm:text-lg text-fuchsia-400 tracking-widest uppercase">
                     La Rebelión de los Barbarismos
                 </p>
             </div>
 
+            <!-- Botones Principales de Acción (Visibles inmediatamente en móvil y PC) -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-4 mb-5">
+                <button id="btnStartGame" class="w-full sm:w-auto px-8 py-3 sm:py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-black text-sm sm:text-lg tracking-wider shadow-lg shadow-cyan-500/30 transition transform hover:-translate-y-0.5">
+                    ▶ INICIAR DEFENSA LÉXICA
+                </button>
+
+                <button id="btnOpenCodexTitle" class="w-full sm:w-auto px-6 py-2.5 sm:py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-fuchsia-500/50 text-fuchsia-300 font-cyber font-bold text-xs sm:text-sm tracking-wider transition">
+                    📖 ABRIR CÓDICE RAE (REGLAS)
+                </button>
+            </div>
+
             <!-- Grid de Configuración y Easter Egg Cervantes Mecha -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                 
                 <!-- Columna 1: Selector de Oleada / Dificultad y Modos -->
-                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+                <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between">
                     <div>
-                        <h2 class="font-cyber text-sm text-cyan-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <h2 class="font-cyber text-xs sm:text-sm text-cyan-300 uppercase tracking-wider mb-2 sm:mb-3 flex items-center gap-2">
                             <span>⚡</span> Configuración de Misión
                         </h2>
                         <label class="block text-xs text-slate-400 mb-1.5">Selecciona Oleada / Nivel de Amenaza:</label>
-                        <select id="selectStartWave" class="w-full bg-slate-950 border border-cyan-500/40 rounded-lg px-3 py-2 text-sm text-white font-mono-code focus:outline-none focus:border-cyan-400 mb-3">
+                        <select id="selectStartWave" class="w-full bg-slate-950 border border-cyan-500/40 rounded-lg px-3 py-2 text-xs sm:text-sm text-white font-mono-code focus:outline-none focus:border-cyan-400 mb-3">
                             <option value="1">Oleada 1: La H Fantasma y Homófonos (Cadete)</option>
                             <option value="2">Oleada 2: Ruptura de Hiatos Acentuales (Agente)</option>
                             <option value="3">Oleada 3: Camuflaje de Diéresis güe/güi (Especialista)</option>
                             <option value="4">Oleada 4: Jefe 'El Murciélago Pentavocálico' (Maestro RAE)</option>
                         </select>
 
-                        <div class="space-y-2 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
-                            <div class="flex items-center gap-2">
+                        <div class="space-y-1.5 text-[11px] sm:text-xs text-slate-300 bg-slate-950/60 p-2.5 sm:p-3 rounded-lg border border-slate-800/80">
+                            <div class="flex items-start gap-2">
                                 <span class="text-fuchsia-400 font-bold">✓</span>
-                                <span><strong>Tilde Rápida:</strong> Escribe <code class="text-cyan-300">á,é,í,ó,ú</code> normal o pulsa <code class="px-1 bg-slate-800 rounded text-fuchsia-300">Tab</code> / <code class="px-1 bg-slate-800 rounded text-fuchsia-300">+</code> antes de la vocal.</span>
+                                <span><strong>PC y Celular:</strong> Incluye teclado táctico neón integrado, fila rápida <code class="text-fuchsia-300">Á É Í Ó Ú Ü</code> y soporte de teclado nativo.</span>
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-start gap-2">
                                 <span class="text-cyan-400 font-bold">✓</span>
-                                <span><strong>Cañón de Diéresis (¨):</strong> Pulsa <code class="px-1 bg-slate-800 rounded text-cyan-300">Espacio</code> para disparar la <code class="text-cyan-300">ü</code> a enemigos sigilosos.</span>
+                                <span><strong>Puntería Táctil:</strong> En celular puedes tocar cualquier nave enemiga en pantalla para fijarla como blanco.</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
-                        <span class="text-xs text-purple-300 font-mono-code">Acceso Directo a Jefe Secreto:</span>
+                    <div class="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between gap-2">
+                        <span class="text-[11px] sm:text-xs text-purple-300 font-mono-code">Jefe Secreto:</span>
                         <button id="btnStartBossDirect" class="px-3 py-1.5 rounded-lg bg-purple-950 hover:bg-purple-800 border border-purple-400 text-purple-200 text-xs font-cyber tracking-wider transition shadow-md">
                             🦇 INVOCAR MURCIÉLAGO
                         </button>
@@ -284,24 +411,24 @@
                 </div>
 
                 <!-- Columna 2: Terminal Secreta Easter Egg 'CERVANTES MECHA' -->
-                <div id="mechaCard" class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 flex flex-col justify-between transition-all duration-500">
+                <div id="mechaCard" class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-500">
                     <div>
                         <div class="flex items-center justify-between mb-2">
-                            <h2 class="font-cyber text-sm text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                            <h2 class="font-cyber text-xs sm:text-sm text-amber-400 uppercase tracking-wider flex items-center gap-2">
                                 <span>🏆</span> Protocolo Secreto RAE
                             </h2>
                             <span id="mechaStatusPill" class="text-[10px] font-mono-code px-2 py-0.5 rounded bg-slate-800 text-slate-400">BLOQUEADO (0/23)</span>
                         </div>
-                        <p class="text-xs text-slate-300 mb-3">
+                        <p class="text-[11px] sm:text-xs text-slate-300 mb-2.5">
                             Teclea en cualquier momento (o escribe aquí) el vocablo más largo del diccionario de la RAE (23 letras) para desbloquear la nave dorada <strong>Cervantes Mecha</strong>:
                         </p>
 
                         <!-- Indicador de progreso sin revelar el vocablo secreto -->
-                        <div id="secretWordTracker" role="progressbar" aria-label="Progreso del protocolo secreto" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" class="bg-slate-950 border border-amber-500/30 rounded-lg p-2.5 mb-2.5 font-mono-code text-xs sm:text-sm tracking-widest text-center">
+                        <div id="secretWordTracker" role="progressbar" aria-label="Progreso del protocolo secreto" aria-valuemin="0" aria-valuemax="23" aria-valuenow="0" class="bg-slate-950 border border-amber-500/30 rounded-lg p-2 mb-2 font-mono-code text-xs sm:text-sm tracking-widest text-center overflow-x-auto">
                             <!-- Rellenado dinámicamente -->
                         </div>
 
-                        <input id="secretInputBox" type="text" placeholder="Escribe aquí tu respuesta..." autocomplete="off" spellcheck="false"
+                        <input id="secretInputBox" type="text" placeholder="Escribe aquí el vocablo de 23 letras..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
                             class="w-full bg-slate-950/90 border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-1.5 text-xs font-mono-code text-amber-300 placeholder-slate-600 focus:outline-none">
                     </div>
 
@@ -314,37 +441,26 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Botones Principales de Acción -->
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <button id="btnStartGame" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-cyber font-black text-base sm:text-lg tracking-wider shadow-lg shadow-cyan-500/30 transition transform hover:-translate-y-0.5">
-                    ▶ INICIAR DEFENSA LÉXICA
-                </button>
-
-                <button id="btnOpenCodexTitle" class="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-fuchsia-500/50 text-fuchsia-300 font-cyber font-bold text-sm tracking-wider transition">
-                    📖 ABRIR CÓDICE RAE (REGLAS)
-                </button>
-            </div>
         </div>
     </section>
 
     <!-- ==================== MODAL: CÓDICE RAE (GUÍA VISUAL Y PAUSA) ==================== -->
-    <div id="codexModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
-        <div class="max-w-4xl w-full max-h-[90vh] bg-slate-900 neon-border-cyan rounded-2xl flex flex-col overflow-hidden shadow-2xl">
-            <div class="px-6 py-4 bg-slate-950 border-b border-cyan-500/30 flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                    <span class="text-2xl">📘</span>
+    <div id="codexModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-3 sm:p-4">
+        <div class="max-w-4xl w-full max-h-[90dvh] bg-slate-900 neon-border-cyan rounded-2xl flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-4 sm:px-6 py-3 sm:py-4 bg-slate-950 border-b border-cyan-500/30 flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl sm:text-2xl">📘</span>
                     <div>
-                        <h2 class="font-cyber text-lg sm:text-xl font-bold text-cyan-300">CÓDICE TÁCTICO DE LA RAE</h2>
-                        <p class="text-xs text-slate-400">Manual de Armamento Ortográfico y Debilidades Enemigas</p>
+                        <h2 class="font-cyber text-sm sm:text-xl font-bold text-cyan-300">CÓDICE TÁCTICO DE LA RAE</h2>
+                        <p class="text-[11px] sm:text-xs text-slate-400">Manual de Armamento Ortográfico y Debilidades Enemigas</p>
                     </div>
                 </div>
-                <button id="btnCloseCodex" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-cyber text-xs">
-                    ✕ CERRAR Y CONTINUAR
+                <button id="btnCloseCodex" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-cyber text-xs shrink-0">
+                    ✕ CERRAR
                 </button>
             </div>
 
-            <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm">
+            <div class="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm" style="touch-action: pan-y;">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Mecánica 1 -->
                     <div class="bg-slate-950/80 border border-emerald-500/40 rounded-xl p-4">
@@ -368,7 +484,7 @@
                             Enemigos acorazados como <code class="text-fuchsia-300">maíz, baúl, raíz, búho, país, caída, ataúd</code> tienen una vocal cerrada débil (<strong>i, u</strong>) tónica junto a una vocal abierta (<strong>a, e, o</strong>).
                         </p>
                         <p class="text-fuchsia-200/90 text-xs bg-fuchsia-500/10 p-2 rounded border border-fuchsia-500/30">
-                            <strong>Acción:</strong> Dispara la vocal con tilde (<code class="text-white">í / ú</code> o pulsa <code class="text-white">Tab / +</code> antes de la vocal) para activar el Rayo Magenta y partir la coraza del enemigo en dos sílabas separadas.
+                            <strong>Acción:</strong> Dispara la vocal con tilde (<code class="text-white">í / ú</code> en la barra rápida o pulsa <code class="text-white">´ Tilde / Tab / +</code> antes de la vocal) para activar el Rayo Magenta y partir la coraza en sílabas.
                         </p>
                     </div>
 
@@ -381,7 +497,7 @@
                             En las sílabas <strong>gue / gui</strong> la U es muda. Las unidades de camuflaje (<code class="text-cyan-300">pingüino, vergüenza, agüita, lingüística, cigüeña, bilingüe</code>) necesitan los dos puntos de la diéresis para sonar.
                         </p>
                         <p class="text-cyan-200/90 text-xs bg-cyan-500/10 p-2 rounded border border-cyan-500/30">
-                            <strong>Acción:</strong> Pulsa la <strong>Barra Espaciadora (Space)</strong> o escribe <code class="text-white">ü</code> para disparar el Doble Cañón Cian, revelar al enemigo sigiloso y validar la diéresis.
+                            <strong>Acción:</strong> Toca el botón <strong>Ü / ¨ Diéresis</strong> o pulsa la <strong>Barra Espaciadora (Space)</strong> para disparar el Doble Cañón Cian y revelar al enemigo sigiloso.
                         </p>
                     </div>
 
@@ -403,63 +519,63 @@
     </div>
 
     <!-- ==================== MODAL: SISTEMA ROGUELIKE DE MEJORAS ENTRE OLEADAS ==================== -->
-    <div id="perkModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4">
-        <div class="max-w-4xl w-full bg-slate-900 neon-border-magenta rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+    <div id="perkModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-3 sm:p-4 overflow-y-auto">
+        <div class="max-w-4xl w-full max-h-[92dvh] overflow-y-auto bg-slate-900 neon-border-magenta rounded-2xl p-4 sm:p-8 shadow-2xl text-center my-auto" style="touch-action: pan-y;">
             <div class="inline-block px-3 py-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-400/40 text-fuchsia-300 text-xs font-mono-code mb-2">
                 ¡OLEADA COMPLETADA CON ÉXITO!
             </div>
-            <h2 class="font-cyber text-2xl sm:text-3xl font-black text-white mb-2">
+            <h2 class="font-cyber text-xl sm:text-3xl font-black text-white mb-1 sm:mb-2">
                 ACTUALIZACIÓN DE PROTOCOLO RAE
             </h2>
-            <p class="text-xs sm:text-sm text-slate-300 mb-6">
+            <p class="text-xs sm:text-sm text-slate-300 mb-4 sm:mb-6">
                 Elige un módulo cibernético permanente para fortalecer tu servidor antes de la siguiente oleada:
             </p>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-left">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-2 text-left">
                 <!-- Perk 1 -->
-                <button data-perk="aba" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                <button data-perk="aba" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-cyan-500/40 hover:border-cyan-400 rounded-xl p-4 sm:p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
                     <div>
-                        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-xl sm:text-2xl mb-2 sm:mb-3 group-hover:scale-110 transition">
                             ⏳
                         </div>
-                        <h3 class="font-cyber text-base font-bold text-cyan-300 mb-2">Regla del Pretérito -ABA</h3>
+                        <h3 class="font-cyber text-sm sm:text-base font-bold text-cyan-300 mb-1.5 sm:mb-2">Regla del Pretérito -ABA</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
                             Ralentiza un <strong>30%</strong> a los enemigos de verbos/homófonos y aumenta un <strong>+20%</strong> todos los puntos obtenidos.
                         </p>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-cyan-400 font-bold">
+                    <div class="mt-3 sm:mt-4 pt-2.5 border-t border-slate-800 text-[11px] font-mono-code text-cyan-400 font-bold">
                         [ INSTALAR MÓDULO → ]
                     </div>
                 </button>
 
                 <!-- Perk 2 -->
-                <button data-perk="etimo" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                <button data-perk="etimo" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 rounded-xl p-4 sm:p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
                     <div>
-                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/10 border border-emerald-400/40 flex items-center justify-center text-xl sm:text-2xl mb-2 sm:mb-3 group-hover:scale-110 transition">
                             🛡️
                         </div>
-                        <h3 class="font-cyber text-base font-bold text-emerald-300 mb-2">Escudo Etimológico</h3>
+                        <h3 class="font-cyber text-sm sm:text-base font-bold text-emerald-300 mb-1.5 sm:mb-2">Escudo Etimológico</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
                             Bloquea la aceleración de castigo si tecleas <strong>'H'</strong> por error en un derivado culto con O y repara <strong>+25% de vida</strong> del servidor.
                         </p>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-emerald-400 font-bold">
+                    <div class="mt-3 sm:mt-4 pt-2.5 border-t border-slate-800 text-[11px] font-mono-code text-emerald-400 font-bold">
                         [ INSTALAR MÓDULO → ]
                     </div>
                 </button>
 
                 <!-- Perk 3 -->
-                <button data-perk="diacritica" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-fuchsia-500/40 hover:border-fuchsia-400 rounded-xl p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
+                <button data-perk="diacritica" class="perk-card group bg-slate-950 hover:bg-slate-900 border border-fuchsia-500/40 hover:border-fuchsia-400 rounded-xl p-4 sm:p-5 transition transform hover:-translate-y-1 flex flex-col justify-between">
                     <div>
-                        <div class="w-12 h-12 rounded-xl bg-fuchsia-500/10 border border-fuchsia-400/40 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition">
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-fuchsia-500/10 border border-fuchsia-400/40 flex items-center justify-center text-xl sm:text-2xl mb-2 sm:mb-3 group-hover:scale-110 transition">
                             ⚡
                         </div>
-                        <h3 class="font-cyber text-base font-bold text-fuchsia-300 mb-2">Sobrecarga Diacrítica</h3>
+                        <h3 class="font-cyber text-sm sm:text-base font-bold text-fuchsia-300 mb-1.5 sm:mb-2">Sobrecarga Diacrítica</h3>
                         <p class="text-xs text-slate-300 leading-relaxed">
                             Los impactos de <strong>tildes y diéresis</strong> generan ondas expansivas que dañan/empujan enemigos cercanos y duplican la ganancia de racha.
                         </p>
                     </div>
-                    <div class="mt-4 pt-3 border-t border-slate-800 text-[11px] font-mono-code text-fuchsia-400 font-bold">
+                    <div class="mt-3 sm:mt-4 pt-2.5 border-t border-slate-800 text-[11px] font-mono-code text-fuchsia-400 font-bold">
                         [ INSTALAR MÓDULO → ]
                     </div>
                 </button>
@@ -468,8 +584,8 @@
     </div>
 
     <!-- ==================== MODAL: FIN DE PARTIDA / VICTORIA ==================== -->
-    <div id="gameOverModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4">
-        <div class="max-w-lg w-full bg-slate-900 neon-border-cyan rounded-2xl p-6 sm:p-8 text-center shadow-2xl">
+    <div id="gameOverModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 overflow-y-auto">
+        <div class="max-w-lg w-full bg-slate-900 neon-border-cyan rounded-2xl p-6 sm:p-8 text-center shadow-2xl my-auto">
             <div id="endGameIcon" class="text-5xl mb-3">🏆</div>
             <h2 id="endGameTitle" class="font-cyber text-2xl sm:text-3xl font-black text-white mb-2">
                 SERVIDOR COMPROMETIDO
@@ -871,20 +987,73 @@
         }
 
         /* ============================================================================
-         * 4. CONFIGURACIÓN DEL CANVAS Y MOTOR GRÁFICO A 60 FPS
+         * 4. CONFIGURACIÓN DEL CANVAS, VIEWPORT MÓVIL Y MOTOR GRÁFICO FLUIDO
          * ============================================================================ */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+        function isTouchOrMobileDevice() {
+            return window.matchMedia('(max-width: 820px), (pointer: coarse)').matches || ('ontouchstart' in window);
+        }
+
+        function triggerHaptic(ms = 10) {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(ms); } catch (_) {}
+            }
+        }
+
+        function getPlayfieldBounds() {
+            const hudTopEl = document.getElementById('hudTop');
+            const hudBottomEl = document.getElementById('hudBottom');
+            const topH = (hudTopEl && !hudTopEl.classList.contains('hidden')) ? hudTopEl.offsetHeight : 56;
+            const bottomH = (hudBottomEl && !hudBottomEl.classList.contains('hidden')) ? hudBottomEl.offsetHeight : 80;
+
+            const topY = topH + 14;
+            const coreLineY = Math.max(topY + 140, canvas.height - bottomH - 22);
+            const turretY = coreLineY - 4;
+            const playHeight = Math.max(140, coreLineY - topY);
+
+            return { topY, coreLineY, turretY, playHeight, bottomH };
+        }
+
+        function clampEnemiesToPlayfield() {
+            if (!gameState.running) return;
+            const bounds = getPlayfieldBounds();
+            const maxSafeY = bounds.coreLineY - 28;
+            gameState.enemies.forEach(enemy => {
+                if (enemy.isBoss) {
+                    enemy.x = canvas.width / 2;
+                    enemy.y = Math.max(bounds.topY + 56, Math.min(enemy.y, maxSafeY - 30));
+                } else {
+                    const halfW = (enemy.lastBoxW || 125) / 2;
+                    enemy.x = Math.max(halfW + 8, Math.min(canvas.width - halfW - 8, enemy.x));
+                    if (enemy.y > maxSafeY) {
+                        enemy.y = Math.max(bounds.topY + 10, maxSafeY);
+                    }
+                }
+            });
+        }
+
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const vv = window.visualViewport;
+            const w = vv ? Math.round(vv.width) : window.innerWidth;
+            const h = vv ? Math.round(vv.height) : window.innerHeight;
+
+            const appBody = document.getElementById('appBody');
+            if (appBody && vv) {
+                appBody.style.height = `${h}px`;
+            }
+
+            canvas.width = w;
+            canvas.height = h;
             initStars();
+            clampEnemiesToPlayfield();
         }
 
         function initStars() {
             gameState.stars = [];
-            for (let i = 0; i < 85; i++) {
+            const starCount = window.innerWidth < 600 ? 48 : 80;
+            for (let i = 0; i < starCount; i++) {
                 gameState.stars.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
@@ -896,6 +1065,10 @@
         }
 
         window.addEventListener('resize', resizeCanvas);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', resizeCanvas);
+            window.visualViewport.addEventListener('scroll', resizeCanvas);
+        }
         resizeCanvas();
 
         /* ============================================================================
@@ -903,10 +1076,37 @@
          * ============================================================================ */
         let enemyIdCounter = 1;
 
+        function pickBestSpawnX(margin) {
+            const minX = margin;
+            const maxX = Math.max(margin + 20, canvas.width - margin);
+            if (maxX <= minX) return canvas.width / 2;
+
+            let bestX = minX + Math.random() * (maxX - minX);
+            let bestDist = -1;
+            const topEnemies = gameState.enemies.filter(e => !e.isBoss && e.y < 180);
+
+            if (topEnemies.length === 0) return bestX;
+
+            for (let attempt = 0; attempt < 6; attempt++) {
+                const candidateX = minX + Math.random() * (maxX - minX);
+                let minDist = Infinity;
+                for (const other of topEnemies) {
+                    const d = Math.abs(candidateX - other.x);
+                    if (d < minDist) minDist = d;
+                }
+                if (minDist > bestDist) {
+                    bestDist = minDist;
+                    bestX = candidateX;
+                }
+            }
+            return bestX;
+        }
+
         function createEnemy(type, customData = null, xPos = null, yPos = null) {
-            const margin = 120;
-            const x = xPos !== null ? xPos : margin + Math.random() * Math.max(100, canvas.width - margin * 2);
-            const y = yPos !== null ? yPos : -45;
+            const bounds = getPlayfieldBounds();
+            const margin = Math.min(115, Math.max(64, canvas.width * 0.18));
+            const x = xPos !== null ? xPos : pickBestSpawnX(margin);
+            const y = yPos !== null ? yPos : (bounds.topY - 10);
 
             let data;
             let speed = 0.48 + (gameState.wave * 0.08);
@@ -924,7 +1124,7 @@
             } else if (type === 'hDerivative') {
                 data = customData;
                 color = '#10b981';
-                speed *= 1.32; // Drones veloces
+                speed *= 1.28; // Drones veloces
                 isDerivativeWithoutH = true;
             } else if (type === 'hiato') {
                 data = customData || LEXICON_DB.hiatos[Math.floor(Math.random() * LEXICON_DB.hiatos.length)];
@@ -963,7 +1163,9 @@
                 shieldBoosted: false,
                 stealthPhase: Math.random() * Math.PI * 2,
                 revealed: type !== 'dieresis',
-                isBoss: false
+                isBoss: false,
+                lastBoxW: 130,
+                lastBoxH: 42
             };
 
             gameState.enemies.push(enemy);
@@ -974,6 +1176,7 @@
             // Evitar duplicar al jefe si ya está en pantalla
             if (gameState.enemies.some(e => e.isBoss)) return;
 
+            const bounds = getPlayfieldBounds();
             gameState.bossActive = true;
             const firstWordObj = LEXICON_DB.pentavocalicas[0];
 
@@ -986,19 +1189,21 @@
                 context: '🦇 JEFE SECRETO: EL MURCIÉLAGO PENTAVOCÁLICO',
                 rule: firstWordObj.rule,
                 x: canvas.width / 2,
-                y: 115,
+                y: Math.max(105, bounds.topY + 58),
                 speed: 0.14,
                 color: '#ffd700',
                 bossHp: 4, // Requiere 4 palabras pentavocálicas para ser derrotado
                 bossMaxHp: 4,
                 wordPoolIndex: 0,
                 vowelsLit: { a: false, e: false, i: false, o: false, u: false },
-                wingAngle: 0
+                wingAngle: 0,
+                lastBoxW: 220,
+                lastBoxH: 90
             };
 
             gameState.enemies.push(boss);
             audio.playFanfare(true);
-            spawnFloatingText(canvas.width / 2, 190, '¡ALERTA: EL MURCIÉLAGO PENTAVOCÁLICO HA APARECIDO!', '#ffd700', 18);
+            spawnFloatingText(canvas.width / 2, boss.y + 65, '¡ALERTA: EL MURCIÉLAGO PENTAVOCÁLICO HA APARECIDO!', '#ffd700', 16);
         }
 
         function spawnWaveEnemy() {
@@ -1034,8 +1239,14 @@
         /* ============================================================================
          * 6. SISTEMA DE PARTÍCULAS, TEXTOS FLOTANTES Y EFECTOS VISUALES
          * ============================================================================ */
-        function spawnParticles(x, y, color, count = 22, speedMult = 1) {
-            for (let i = 0; i < count; i++) {
+        const MAX_PARTICLES = 90;
+
+        function spawnParticles(x, y, color, count = 20, speedMult = 1) {
+            const actualCount = window.innerWidth < 600 ? Math.ceil(count * 0.65) : count;
+            for (let i = 0; i < actualCount; i++) {
+                if (gameState.particles.length >= MAX_PARTICLES) {
+                    gameState.particles.shift();
+                }
                 const angle = Math.random() * Math.PI * 2;
                 const spd = (Math.random() * 4.5 + 1.2) * speedMult;
                 gameState.particles.push({
@@ -1045,20 +1256,25 @@
                     vy: Math.sin(angle) * spd,
                     color,
                     alpha: 1,
-                    size: Math.random() * 3.5 + 1.5
+                    size: Math.random() * 3.2 + 1.5
                 });
             }
         }
 
         function spawnFloatingText(x, y, text, color = '#00f3ff', size = 15) {
+            const isMobileWidth = canvas.width < 520;
+            const responsiveSize = isMobileWidth ? Math.max(11, Math.round(size * 0.82)) : size;
+            const padX = isMobileWidth ? 16 : 120;
+            const clampedX = Math.max(padX, Math.min(canvas.width - padX, x));
+
             gameState.floatingTexts.push({
-                x: Math.max(140, Math.min(canvas.width - 140, x)),
-                y,
+                x: clampedX,
+                y: Math.max(70, y),
                 text,
                 color,
-                size,
+                size: responsiveSize,
                 alpha: 1,
-                vy: -1.1
+                vy: -1.05
             });
         }
 
@@ -1094,11 +1310,12 @@
                 alpha: 1
             });
 
+            const bounds = getPlayfieldBounds();
             // Empuja hacia arriba a los enemigos cercanos
             gameState.enemies.forEach(other => {
                 const dist = Math.hypot(other.x - x, other.y - y);
                 if (dist < 190 && !other.isBoss) {
-                    other.y = Math.max(30, other.y - 28 * gameState.perks.diacritica);
+                    other.y = Math.max(bounds.topY + 10, other.y - 28 * gameState.perks.diacritica);
                 }
             });
         }
@@ -1110,7 +1327,7 @@
         }
 
         /* ============================================================================
-         * 7. LÓGICA DE COMBATE ORTOGRÁFICO Y ENTRADA DE TECLADO INTELIGENTE
+         * 7. LÓGICA DE COMBATE ORTOGRÁFICO Y ENTRADA DE TECLADO INTELIGENTE (PC + MÓVIL)
          * ============================================================================ */
         const VOWEL_TO_ACCENT = { 'a': 'á', 'e': 'é', 'i': 'í', 'o': 'ó', 'u': 'ú' };
         const ACCENT_TO_BASE = { 'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u', 'ü': 'u' };
@@ -1130,19 +1347,51 @@
         function updateArmButtonsUI() {
             const btnTilde = document.getElementById('btnArmTilde');
             const btnDieresis = document.getElementById('btnArmDieresis');
-            if (!btnTilde || !btnDieresis) return;
+            const vkeyTilde = document.getElementById('vkeyTilde');
+            const vkeyDieresis = document.getElementById('vkeyDieresis');
 
-            if (gameState.tildeArmed) {
-                btnTilde.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-600 border-2 border-white text-white text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#ff00ea] scale-105';
-            } else {
-                btnTilde.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+            if (btnTilde) {
+                if (gameState.tildeArmed) {
+                    btnTilde.className = 'cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-fuchsia-600 border-2 border-white text-white text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#ff00ea] scale-105';
+                } else {
+                    btnTilde.className = 'cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-fuchsia-950/70 hover:bg-fuchsia-900/80 border border-fuchsia-500/60 text-fuchsia-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+                }
             }
 
-            if (gameState.dieresisArmed) {
-                btnDieresis.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-500 border-2 border-white text-slate-950 text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#00f3ff] scale-105';
-            } else {
-                btnDieresis.className = 'flex-1 md:flex-initial px-3 py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+            if (btnDieresis) {
+                if (gameState.dieresisArmed) {
+                    btnDieresis.className = 'cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-cyan-500 border-2 border-white text-slate-950 text-xs font-mono-code transition flex flex-col items-center justify-center shadow-[0_0_15px_#00f3ff] scale-105';
+                } else {
+                    btnDieresis.className = 'cyber-key flex-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-cyan-950/70 hover:bg-cyan-900/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono-code transition flex flex-col items-center justify-center';
+                }
             }
+
+            if (vkeyTilde) {
+                vkeyTilde.className = gameState.tildeArmed
+                    ? 'cyber-key col-span-2 h-9 sm:h-10 rounded-lg bg-fuchsia-600 border-2 border-white text-white font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center shadow-[0_0_12px_#ff00ea]'
+                    : 'cyber-key col-span-2 h-9 sm:h-10 rounded-lg bg-fuchsia-950/85 border border-fuchsia-500/60 text-fuchsia-200 font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center';
+            }
+
+            if (vkeyDieresis) {
+                vkeyDieresis.className = gameState.dieresisArmed
+                    ? 'cyber-key h-9 sm:h-10 rounded-lg bg-cyan-400 border-2 border-white text-slate-950 font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center shadow-[0_0_12px_#00f3ff]'
+                    : 'cyber-key h-9 sm:h-10 rounded-lg bg-cyan-950/85 border border-cyan-400/60 text-cyan-200 font-mono-code font-bold text-xs sm:text-sm flex items-center justify-center';
+            }
+
+            // Actualizar visualmente las vocales del teclado táctico si Tilde o Diéresis están armadas
+            document.querySelectorAll('[data-vowel]').forEach(btn => {
+                const baseV = btn.getAttribute('data-vowel');
+                if (gameState.tildeArmed && VOWEL_TO_ACCENT[baseV]) {
+                    btn.textContent = VOWEL_TO_ACCENT[baseV].toUpperCase();
+                    btn.classList.add('border-fuchsia-400', 'text-fuchsia-300', 'bg-fuchsia-950/70');
+                } else if (gameState.dieresisArmed && baseV === 'u') {
+                    btn.textContent = 'Ü';
+                    btn.classList.add('border-cyan-300', 'text-cyan-200', 'bg-cyan-950/80');
+                } else {
+                    btn.textContent = baseV.toUpperCase();
+                    btn.classList.remove('border-fuchsia-400', 'text-fuchsia-300', 'bg-fuchsia-950/70', 'border-cyan-300', 'bg-cyan-950/80');
+                }
+            });
         }
 
         // Penalización reactiva de la Mecánica 1: Teclear 'H' contra un derivado culto con O (ej. 'hosario', 'hovario')
@@ -1195,13 +1444,21 @@
 
             let char = rawChar.toLowerCase();
 
-            // Si el cañón de tilde o diéresis estaba armado, transformar la vocal
-            if (gameState.tildeArmed && VOWEL_TO_ACCENT[char]) {
-                char = VOWEL_TO_ACCENT[char];
-                setTildeArmed(false);
-            } else if (gameState.dieresisArmed && char === 'u') {
-                char = 'ü';
-                setDieresisArmed(false);
+            // Si el cañón de tilde o diéresis estaba armado, transformar la vocal y desarmar
+            if (gameState.tildeArmed) {
+                if (VOWEL_TO_ACCENT[char]) {
+                    char = VOWEL_TO_ACCENT[char];
+                }
+                if (VOWEL_TO_ACCENT[char] || ['á', 'é', 'í', 'ó', 'ú'].includes(char)) {
+                    setTildeArmed(false);
+                }
+            } else if (gameState.dieresisArmed) {
+                if (char === 'u') {
+                    char = 'ü';
+                }
+                if (char === 'u' || char === 'ü') {
+                    setDieresisArmed(false);
+                }
             }
 
             // Buscar el enemigo actualmente fijado (lock-on)
@@ -1210,13 +1467,12 @@
                 gameState.lockedEnemyId = null;
             }
 
-            // Si se presionó Barra Espaciadora y el objetivo fijado espera exactamente 'ü', disparar directo
+            // Si se presionó Barra Espaciadora / Botón Diéresis y el objetivo fijado espera exactamente 'ü', disparar directo
             if (isSpaceDieresisTrigger) {
                 if (lockedEnemy && lockedEnemy.word[lockedEnemy.typedIndex] === 'ü') {
                     char = 'ü';
                     setDieresisArmed(false);
                 } else {
-                    // O si hay un enemigo en pantalla cuya primera letra o siguiente sea 'ü', armar torreta
                     setDieresisArmed(!gameState.dieresisArmed);
                     return;
                 }
@@ -1225,7 +1481,6 @@
             // Si NO hay enemigo fijado todavía, buscar cuál fijar
             if (!lockedEnemy) {
                 // Comprobar primero la Trampa de la H Fantasma:
-                // Si el jugador presiona 'h', no hay ningún enemigo que empiece por 'h', pero SÍ hay drones derivados sin H ('osario', 'ovario', etc.)
                 if (char === 'h') {
                     const hasValidHTarget = gameState.enemies.some(e => e.word[0] === 'h');
                     const derivativeDrone = gameState.enemies.find(e => e.isDerivativeWithoutH);
@@ -1248,7 +1503,7 @@
                     const missedAccentCandidate = gameState.enemies.find(e => ACCENT_TO_BASE[e.word[0]] === char);
                     if (missedAccentCandidate) {
                         audio.playErrorAlarm();
-                        spawnFloatingText(missedAccentCandidate.x, missedAccentCandidate.y - 20, '¡FALTA TILDE INICIAL! Usa [Tab/+] o tilde', '#ff00ea', 14);
+                        spawnFloatingText(missedAccentCandidate.x, missedAccentCandidate.y - 20, '¡FALTA TILDE INICIAL! Usa [´ Tilde] o barra rápida', '#ff00ea', 14);
                     }
                     return;
                 }
@@ -1270,11 +1525,11 @@
             }
 
             // Caso 3: El jugador escribió la vocal sin tilde cuando requería tilde ('í', 'ú', 'á', 'é', 'ó')
-            if ( expectedChar !== 'ü' && ACCENT_TO_BASE[expectedChar] === char) {
+            if (expectedChar !== 'ü' && ACCENT_TO_BASE[expectedChar] === char) {
                 audio.playErrorAlarm();
                 resetStreak();
                 const msg = lockedEnemy.type === 'hiato'
-                    ? `¡ALERTA DE HIATO! Se requiere tilde en '${expectedChar.toUpperCase()}' (Usa [Tab/+] o ´)`
+                    ? `¡ALERTA DE HIATO! Se requiere tilde en '${expectedChar.toUpperCase()}'`
                     : `¡FALTA TILDE! Esta palabra exige '${expectedChar.toUpperCase()}'`;
                 spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, msg, '#ff00ea', 15);
                 return;
@@ -1284,7 +1539,7 @@
             if (expectedChar === 'ü' && char === 'u') {
                 audio.playErrorAlarm();
                 resetStreak();
-                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, '¡FALTA DIÉRESIS (¨)! Pulsa [ESPACIO] o escribe ü', '#00f3ff', 15);
+                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, '¡FALTA DIÉRESIS (¨)! Toca [Ü] o pulsa [ESPACIO]', '#00f3ff', 15);
                 return;
             }
 
@@ -1292,7 +1547,7 @@
             if (lockedEnemy.wrongChar && char === lockedEnemy.wrongChar) {
                 audio.playErrorAlarm();
                 resetStreak();
-                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, `¡ERROR HOMÓFONO! ${lockedEnemy.context} se escribe con '${expectedChar.toUpperCase()}'`, '#ff2a54', 15);
+                spawnFloatingText(lockedEnemy.x, lockedEnemy.y - 24, `¡ERROR HOMÓFONO! ${lockedEnemy.context} va con '${expectedChar.toUpperCase()}'`, '#ff2a54', 15);
                 return;
             }
 
@@ -1304,8 +1559,9 @@
         function handleSuccessfulLetterHit(enemy, hitChar) {
             enemy.typedIndex++;
 
+            const bounds = getPlayfieldBounds();
             const turretX = canvas.width / 2;
-            const turretY = canvas.height - 95;
+            const turretY = bounds.turretY;
 
             const isHiatoAccent = (enemy.type === 'hiato' && (hitChar === 'í' || hitChar === 'ú'));
             const isDieresisHit = (hitChar === 'ü');
@@ -1332,7 +1588,7 @@
                 });
                 triggerHiatoSplitVisual(enemy);
                 triggerDiacriticOverloadShockwave(enemy.x, enemy.y, '#ff00ea');
-                spawnFloatingText(enemy.x, enemy.y - 30, `¡RUPTURA DE HIATO (${ (enemy.syllables || []).join(' - ') })!`, '#ff00ea', 16);
+                spawnFloatingText(enemy.x, enemy.y - 30, `¡RUPTURA DE HIATO (${(enemy.syllables || []).join(' - ')})!`, '#ff00ea', 16);
             } else if (isDieresisHit) {
                 audio.playDieresisTwinLaser();
                 enemy.revealed = true;
@@ -1361,7 +1617,7 @@
                 }
             }
 
-            spawnParticles(enemy.x, enemy.y, enemy.color, isHiatoAccent || isDieresisHit ? 28 : 10);
+            spawnParticles(enemy.x, enemy.y, enemy.color, isHiatoAccent || isDieresisHit ? 26 : 9);
             incrementStreak(isAnyDiacritic);
 
             // Sumar puntos por letra
@@ -1382,12 +1638,12 @@
             if (enemy.isBoss) {
                 enemy.bossHp--;
                 audio.playHiatoExplosion();
-                spawnParticles(enemy.x, enemy.y, '#ffd700', 50, 1.6);
+                spawnParticles(enemy.x, enemy.y, '#ffd700', 45, 1.5);
                 gameState.score += 500 * gameState.comboMultiplier;
 
                 if (enemy.bossHp <= 0) {
                     // Jefe derrotado
-                    spawnFloatingText(enemy.x, enemy.y, '🦇 ¡MURCIÉLAGO PENTAVOCÁLICO DERROTADO! +2000 PTS', '#ffd700', 20);
+                    spawnFloatingText(enemy.x, enemy.y, '🦇 ¡MURCIÉLAGO PENTAVOCÁLICO DERROTADO! +2000 PTS', '#ffd700', 18);
                     gameState.score += 2000;
                     gameState.enemies = gameState.enemies.filter(e => e.id !== enemy.id);
                     gameState.lockedEnemyId = null;
@@ -1402,7 +1658,7 @@
                     enemy.rule = nextWordObj.rule;
                     enemy.typedIndex = 0;
                     enemy.vowelsLit = { a: false, e: false, i: false, o: false, u: false };
-                    spawnFloatingText(enemy.x, enemy.y - 40, `¡NÚCLEO PENTAVOCÁLICO DAÑADO! (${enemy.bossHp} restantes)`, '#00ff88', 16);
+                    spawnFloatingText(enemy.x, enemy.y - 36, `¡NÚCLEO PENTAVOCÁLICO DAÑADO! (${enemy.bossHp} restantes)`, '#00ff88', 15);
                 }
                 return;
             }
@@ -1418,17 +1674,22 @@
                     15
                 );
 
+                const bounds = getPlayfieldBounds();
                 const count = enemy.childrenData.length;
+                const isNarrow = canvas.width < 520;
+                const spread = isNarrow ? Math.min(88, Math.floor((canvas.width - 120) / Math.max(1, count - 1))) : 115;
+
                 enemy.childrenData.forEach((childObj, idx) => {
-                    const offset = (idx - (count - 1) / 2) * 115;
-                    const clampedX = Math.max(90, Math.min(canvas.width - 90, enemy.x + offset));
-                    createEnemy('hDerivative', childObj, clampedX, Math.max(40, enemy.y - 15));
+                    const offset = (idx - (count - 1) / 2) * spread;
+                    const clampedX = Math.max(68, Math.min(canvas.width - 68, enemy.x + offset));
+                    const staggerY = isNarrow ? idx * 24 : 0;
+                    createEnemy('hDerivative', childObj, clampedX, Math.max(bounds.topY + 4, enemy.y - 14 - staggerY));
                 });
             } else {
                 gameState.waveKills++;
             }
 
-            spawnParticles(enemy.x, enemy.y, enemy.color, 30, 1.3);
+            spawnParticles(enemy.x, enemy.y, enemy.color, 26, 1.25);
             gameState.enemies = gameState.enemies.filter(e => e.id !== enemy.id);
             gameState.lockedEnemyId = null;
 
@@ -1440,6 +1701,10 @@
             if (gameState.waveKills >= gameState.waveTargetKills && !anyRemaining && !gameState.bossActive) {
                 gameState.paused = true;
                 audio.playFanfare(false);
+                const combatInput = document.getElementById('combatInput');
+                if (combatInput && document.activeElement === combatInput) {
+                    combatInput.blur();
+                }
                 document.getElementById('perkModal').classList.remove('hidden');
                 document.getElementById('perkModal').classList.add('flex');
             }
@@ -1451,7 +1716,7 @@
         function updateHud() {
             document.getElementById('hudScore').textContent = String(gameState.score).padStart(6, '0');
             document.getElementById('hudCombo').textContent = `x${gameState.comboMultiplier}`;
-            document.getElementById('hudStreak').textContent = `(${gameState.streak} racha)`;
+            document.getElementById('hudStreak').textContent = `(${gameState.streak})`;
             document.getElementById('hudWave').textContent = `OLEADA ${gameState.wave}`;
 
             const hpPercent = Math.max(0, Math.round((gameState.hp / gameState.maxHp) * 100));
@@ -1483,16 +1748,16 @@
                     <span class="text-emerald-400">${typedPart}</span><span class="text-white bg-fuchsia-600/80 px-1 rounded underline decoration-2 animate-pulse">${nextChar}</span><span class="text-slate-300">${restPart}</span>
                 `;
                 contextBadge.textContent = lockedEnemy.context;
-                contextBadge.className = 'text-[10px] font-mono-code uppercase tracking-widest text-cyan-300 mb-0.5';
+                contextBadge.className = 'text-[9px] sm:text-[10px] font-mono-code uppercase tracking-widest text-cyan-300 truncate';
 
                 ruleTitle.textContent = `BLANCO FIJADO: ${lockedEnemy.word.toUpperCase()}`;
                 ruleDesc.textContent = lockedEnemy.rule;
             } else {
-                wordDisplay.innerHTML = `<span class="text-slate-500 text-sm font-normal">TECLEA LA INICIAL DE UN ENEMIGO</span>`;
+                wordDisplay.innerHTML = `<span class="text-slate-400 text-xs sm:text-sm font-normal">TOCA UNA NAVE O ESCRIBE SU INICIAL</span>`;
                 contextBadge.textContent = 'SISTEMA DE PUNTERÍA LÉXICA ACTIVO';
-                contextBadge.className = 'text-[10px] font-mono-code uppercase tracking-widest text-slate-400 mb-0.5';
+                contextBadge.className = 'text-[9px] sm:text-[10px] font-mono-code uppercase tracking-widest text-slate-400 truncate';
                 ruleTitle.textContent = 'ESPERANDO OBJETIVO...';
-                ruleDesc.textContent = 'Usa [Tab/+] para Tilde (´) o [Espacio] para Diéresis (¨).';
+                ruleDesc.textContent = 'Usa el teclado en pantalla, tu teclado o toca una nave.';
             }
 
             // Mostrar iconos de Perks activos
@@ -1509,9 +1774,9 @@
         /* ============================================================================
          * 9. RENDERIZADO DEL LIENZO (TORRETA / CERVANTES MECHA, ENEMIGOS, JEFES, RAYOS)
          * ============================================================================ */
-        function drawTurret() {
+        function drawTurret(turretY) {
             const cx = canvas.width / 2;
-            const cy = canvas.height - 92;
+            const cy = turretY;
 
             ctx.save();
             ctx.translate(cx, cy);
@@ -1519,11 +1784,11 @@
             if (gameState.cervantesMecha) {
                 // NAVE SECRETA DORADA: CERVANTES MECHA CON CAÑONES DE PLUMA LÁSER
                 ctx.shadowColor = '#ffd700';
-                ctx.shadowBlur = 22;
+                ctx.shadowBlur = 18;
 
                 // Halo de escudo dorado
                 ctx.beginPath();
-                ctx.arc(0, 0, 42, Math.PI, 0, false);
+                ctx.arc(0, 0, 38, Math.PI, 0, false);
                 ctx.strokeStyle = 'rgba(255, 215, 0, 0.55)';
                 ctx.lineWidth = 3;
                 ctx.stroke();
@@ -1533,10 +1798,10 @@
                 ctx.strokeStyle = '#ffd700';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(-45, 18);
-                ctx.lineTo(-18, -16);
-                ctx.lineTo(18, -16);
-                ctx.lineTo(45, 18);
+                ctx.moveTo(-40, 15);
+                ctx.lineTo(-16, -14);
+                ctx.lineTo(16, -14);
+                ctx.lineTo(40, 15);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
@@ -1544,10 +1809,10 @@
                 // Cañón central de Pluma de Oro (Quill Laser)
                 ctx.fillStyle = '#fef08a';
                 ctx.beginPath();
-                ctx.moveTo(0, -38);
-                ctx.lineTo(-10, -8);
+                ctx.moveTo(0, -34);
+                ctx.lineTo(-9, -7);
                 ctx.lineTo(0, 4);
-                ctx.lineTo(10, -8);
+                ctx.lineTo(9, -7);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
@@ -1555,12 +1820,12 @@
                 // Núcleo Cervantes
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.arc(0, -12, 5, 0, Math.PI * 2);
+                ctx.arc(0, -10, 4.5, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 // TORRETA CIBERPUNK ESTÁNDAR
                 ctx.shadowColor = '#00f3ff';
-                ctx.shadowBlur = 16;
+                ctx.shadowBlur = 14;
 
                 ctx.fillStyle = '#0f172a';
                 ctx.strokeStyle = '#00f3ff';
@@ -1568,31 +1833,37 @@
 
                 // Base hexagonal
                 ctx.beginPath();
-                ctx.moveTo(-28, 16);
-                ctx.lineTo(-16, -12);
-                ctx.lineTo(16, -12);
-                ctx.lineTo(28, 16);
+                ctx.moveTo(-25, 14);
+                ctx.lineTo(-15, -10);
+                ctx.lineTo(15, -10);
+                ctx.lineTo(25, 14);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
 
                 // Cañones gemelos
                 ctx.fillStyle = '#00f3ff';
-                ctx.fillRect(-10, -26, 5, 16);
-                ctx.fillRect(5, -26, 5, 16);
+                ctx.fillRect(-9, -23, 4.5, 14);
+                ctx.fillRect(4.5, -23, 4.5, 14);
             }
 
             ctx.restore();
         }
 
-        function drawPentavocalicBoss(boss) {
+        function drawPentavocalicBoss(boss, dtFactor) {
             ctx.save();
             ctx.translate(boss.x, boss.y);
-            boss.wingAngle += 0.08;
+
+            const bossScale = Math.min(1, (canvas.width - 20) / 285);
+            if (bossScale < 1) {
+                ctx.scale(bossScale, bossScale);
+            }
+
+            boss.wingAngle += 0.08 * dtFactor;
             const wingFlap = Math.sin(boss.wingAngle) * 18;
 
             ctx.shadowColor = '#ffd700';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 16;
 
             // Alas Cibernéticas de Murciélago Neón
             ctx.fillStyle = 'rgba(88, 28, 135, 0.85)';
@@ -1662,7 +1933,7 @@
             ctx.font = '800 20px "JetBrains Mono"';
             ctx.textAlign = 'center';
             const totalW = ctx.measureText(boss.word.toUpperCase()).width;
-            let startX = -totalW / 2;
+            const startX = -totalW / 2;
 
             ctx.textAlign = 'left';
             ctx.fillStyle = '#00ff88';
@@ -1681,7 +1952,22 @@
             ctx.restore();
         }
 
-        function drawRegularEnemy(enemy) {
+        function drawRegularEnemy(enemy, dtFactor) {
+            const isCompact = canvas.width < 480;
+            const fontSize = isCompact ? 15 : 17;
+            ctx.font = `800 ${fontSize}px "JetBrains Mono"`;
+            const wordUpper = enemy.word.toUpperCase();
+            const textWidth = ctx.measureText(wordUpper).width;
+            const boxW = Math.max(isCompact ? 106 : 125, textWidth + (isCompact ? 24 : 34));
+            const boxH = isCompact ? 38 : 44;
+
+            enemy.lastBoxW = boxW;
+            enemy.lastBoxH = boxH;
+
+            // Asegurar que la nave nunca se salga de los bordes laterales en celulares
+            const halfW = boxW / 2;
+            enemy.x = Math.max(halfW + 6, Math.min(canvas.width - halfW - 6, enemy.x));
+
             ctx.save();
             ctx.translate(enemy.x, enemy.y);
 
@@ -1689,18 +1975,12 @@
 
             // Efecto de camuflaje parpadeante para enemigos sigilosos de Diéresis (güe/güi)
             if (enemy.type === 'dieresis' && !enemy.revealed) {
-                enemy.stealthPhase += 0.07;
+                enemy.stealthPhase += 0.07 * dtFactor;
                 ctx.globalAlpha = 0.32 + Math.abs(Math.sin(enemy.stealthPhase)) * 0.45;
             }
 
-            ctx.font = '800 17px "JetBrains Mono"';
-            const wordUpper = enemy.word.toUpperCase();
-            const textWidth = ctx.measureText(wordUpper).width;
-            const boxW = Math.max(125, textWidth + 34);
-            const boxH = 44;
-
             ctx.shadowColor = isLocked ? '#ffffff' : enemy.color;
-            ctx.shadowBlur = isLocked ? 18 : 10;
+            ctx.shadowBlur = isLocked ? 14 : 8;
 
             // Fondo de la nave enemiga
             ctx.fillStyle = isLocked ? 'rgba(15, 23, 42, 0.96)' : 'rgba(6, 10, 25, 0.88)';
@@ -1722,16 +2002,16 @@
             }
 
             // Etiqueta superior de contexto ortográfico
-            ctx.font = '600 10px "JetBrains Mono"';
+            ctx.font = `600 ${isCompact ? 9 : 10}px "JetBrains Mono"`;
             ctx.textAlign = 'center';
             ctx.fillStyle = enemy.shieldBoosted ? '#fda4af' : '#94a3b8';
-            ctx.fillText(enemy.context, 0, -boxH / 2 - 6);
+            ctx.fillText(enemy.context, 0, -boxH / 2 - 5, canvas.width - 16);
 
             // Renderizar letras tecleadas vs pendientes
             const typed = wordUpper.slice(0, enemy.typedIndex);
             const untyped = wordUpper.slice(enemy.typedIndex);
 
-            ctx.font = '800 17px "JetBrains Mono"';
+            ctx.font = `800 ${fontSize}px "JetBrains Mono"`;
             const startX = -textWidth / 2;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
@@ -1747,9 +2027,16 @@
         }
 
         /* ============================================================================
-         * 10. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA (60 FPS)
+         * 10. BUCLE PRINCIPAL DE ANIMACIÓN Y FÍSICA CON DELTA-TIME (60-120 FPS FLUIDOS)
          * ============================================================================ */
+        let lastFrameTime = performance.now();
+
         function gameLoop(timestamp) {
+            const rawDt = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+            // Normalizar velocidad respecto a 60 FPS (16.67ms) para fluidez idéntica en 60Hz, 90Hz y 120Hz
+            const dtFactor = Math.min(2.2, Math.max(0.4, rawDt / 16.667));
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // 1. Fondo de estrellas y cuadrícula ciberpunk
@@ -1758,7 +2045,7 @@
 
             gameState.stars.forEach(st => {
                 if (gameState.running && !gameState.paused) {
-                    st.y += st.speed * (1 + (gameState.comboMultiplier - 1) * 0.25);
+                    st.y += st.speed * (1 + (gameState.comboMultiplier - 1) * 0.25) * dtFactor;
                     if (st.y > canvas.height) {
                         st.y = 0;
                         st.x = Math.random() * canvas.width;
@@ -1769,6 +2056,11 @@
             });
 
             if (gameState.running) {
+                const bounds = getPlayfieldBounds();
+                const coreLineY = bounds.coreLineY;
+                // Escalar velocidad vertical proporcionalmente a la altura disponible en pantallas móviles
+                const heightSpeedScale = Math.max(0.45, Math.min(1.0, bounds.playHeight / 650));
+
                 // 2. Spawner de enemigos
                 if (!gameState.paused && timestamp - gameState.lastSpawnTime > gameState.spawnInterval) {
                     spawnWaveEnemy();
@@ -1776,8 +2068,7 @@
                 }
 
                 // 3. Dibujar línea defensiva del Núcleo Servidor
-                const coreLineY = canvas.height - 90;
-                ctx.strokeStyle = gameState.cervantesMecha ? 'rgba(255, 215, 0, 0.35)' : 'rgba(0, 243, 255, 0.25)';
+                ctx.strokeStyle = gameState.cervantesMecha ? 'rgba(255, 215, 0, 0.38)' : 'rgba(0, 243, 255, 0.28)';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(0, coreLineY);
@@ -1788,25 +2079,27 @@
                 for (let i = gameState.enemies.length - 1; i >= 0; i--) {
                     const enemy = gameState.enemies[i];
                     if (!gameState.paused) {
-                        enemy.y += enemy.speed;
+                        enemy.y += enemy.speed * heightSpeedScale * dtFactor;
                     }
 
                     if (enemy.isBoss) {
-                        drawPentavocalicBoss(enemy);
+                        enemy.x = canvas.width / 2;
+                        drawPentavocalicBoss(enemy, dtFactor);
                     } else {
-                        drawRegularEnemy(enemy);
+                        drawRegularEnemy(enemy, dtFactor);
                     }
 
                     // ¿El enemigo impactó contra el Núcleo del Servidor?
                     if (enemy.y >= coreLineY - 12) {
                         audio.playErrorAlarm();
                         triggerScreenShake();
+                        triggerHaptic(40);
                         resetStreak();
 
                         const dmg = enemy.isBoss ? 50 : 20;
                         gameState.hp = Math.max(0, gameState.hp - dmg);
-                        spawnParticles(enemy.x, coreLineY, '#ff2a54', 32, 1.4);
-                        spawnFloatingText(enemy.x, coreLineY - 30, `¡IMPACTO EN EL SERVIDOR (-${dmg}% INTEGRIDAD)!`, '#ff2a54', 15);
+                        spawnParticles(enemy.x, coreLineY, '#ff2a54', 26, 1.3);
+                        spawnFloatingText(enemy.x, coreLineY - 28, `¡IMPACTO EN EL SERVIDOR (-${dmg}% INTEGRIDAD)!`, '#ff2a54', 15);
 
                         if (enemy.id === gameState.lockedEnemyId) {
                             gameState.lockedEnemyId = null;
@@ -1814,7 +2107,7 @@
 
                         if (enemy.isBoss) {
                             // El jefe retrocede a la parte superior si toca el núcleo
-                            enemy.y = 110;
+                            enemy.y = Math.max(105, bounds.topY + 58);
                         } else {
                             gameState.enemies.splice(i, 1);
                             gameState.waveKills++;
@@ -1837,12 +2130,11 @@
                     ctx.save();
                     ctx.strokeStyle = l.color;
                     ctx.shadowColor = l.color;
-                    ctx.shadowBlur = 15;
-                    ctx.globalAlpha = l.alpha;
+                    ctx.shadowBlur = 12;
+                    ctx.globalAlpha = Math.max(0, l.alpha);
                     ctx.lineWidth = l.width;
 
                     if (l.isDual) {
-                        // Dos láseres paralelos cian para la diéresis (¨)
                         ctx.beginPath();
                         ctx.moveTo(l.x1 - 12, l.y1);
                         ctx.lineTo(l.x2 - 12, l.y2);
@@ -1857,23 +2149,23 @@
                     }
                     ctx.restore();
 
-                    l.alpha -= 0.08;
+                    l.alpha -= 0.08 * dtFactor;
                     if (l.alpha <= 0) gameState.lasers.splice(i, 1);
                 }
 
                 // 6. Dibujar Sílabas Partidas por Ruptura de Hiato
                 for (let i = gameState.splitHalves.length - 1; i >= 0; i--) {
                     const sh = gameState.splitHalves[i];
-                    sh.x += sh.vx;
-                    sh.y += sh.vy;
-                    sh.alpha -= 0.022;
+                    sh.x += sh.vx * dtFactor;
+                    sh.y += sh.vy * dtFactor;
+                    sh.alpha -= 0.022 * dtFactor;
 
                     ctx.save();
                     ctx.globalAlpha = Math.max(0, sh.alpha);
-                    ctx.font = '900 18px Orbitron';
+                    ctx.font = '900 17px Orbitron';
                     ctx.fillStyle = sh.color;
                     ctx.shadowColor = sh.color;
-                    ctx.shadowBlur = 12;
+                    ctx.shadowBlur = 10;
                     ctx.textAlign = 'center';
                     ctx.fillText(sh.text, sh.x, sh.y);
                     ctx.restore();
@@ -1884,7 +2176,7 @@
                 // 7. Dibujar Ondas Expansivas (Ruptura de Hiato y Sobrecarga Diacrítica)
                 for (let i = gameState.shockwaves.length - 1; i >= 0; i--) {
                     const sw = gameState.shockwaves[i];
-                    sw.radius += 6;
+                    sw.radius += 6 * dtFactor;
                     sw.alpha = 1 - (sw.radius / sw.maxRadius);
 
                     ctx.save();
@@ -1900,21 +2192,24 @@
                 }
 
                 // 8. Dibujar Torreta Central / Cervantes Mecha
-                drawTurret();
+                drawTurret(bounds.turretY);
             }
 
-            // 9. Actualizar y dibujar Partículas
+            // 9. Actualizar y dibujar Partículas (sin shadowBlur en móvil para máxima fluidez GPU)
+            const useParticleGlow = canvas.width >= 768;
             for (let i = gameState.particles.length - 1; i >= 0; i--) {
                 const p = gameState.particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= 0.026;
+                p.x += p.vx * dtFactor;
+                p.y += p.vy * dtFactor;
+                p.alpha -= 0.028 * dtFactor;
 
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, p.alpha);
                 ctx.fillStyle = p.color;
-                ctx.shadowColor = p.color;
-                ctx.shadowBlur = 8;
+                if (useParticleGlow) {
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 6;
+                }
                 ctx.fillRect(p.x, p.y, p.size, p.size);
                 ctx.restore();
 
@@ -1922,19 +2217,20 @@
             }
 
             // 10. Actualizar y dibujar Textos Flotantes de Retroalimentación Ortográfica
+            const maxTextW = canvas.width - 20;
             for (let i = gameState.floatingTexts.length - 1; i >= 0; i--) {
                 const ft = gameState.floatingTexts[i];
-                ft.y += ft.vy;
-                ft.alpha -= 0.014;
+                ft.y += ft.vy * dtFactor;
+                ft.alpha -= 0.014 * dtFactor;
 
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, ft.alpha);
                 ctx.font = `700 ${ft.size}px "JetBrains Mono"`;
                 ctx.fillStyle = ft.color;
                 ctx.shadowColor = '#000000';
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 5;
                 ctx.textAlign = 'center';
-                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.fillText(ft.text, ft.x, ft.y, maxTextW);
                 ctx.restore();
 
                 if (ft.alpha <= 0) gameState.floatingTexts.splice(i, 1);
@@ -1944,8 +2240,26 @@
         }
 
         /* ============================================================================
-         * 11. GESTIÓN DE PARTIDA, OLEADAS Y CONTROLES DE USUARIO
+         * 11. GESTIÓN DE PARTIDA, CONTROLES TÁCTILES, TECLADO VIRTUAL Y NATIVO
          * ============================================================================ */
+        let virtualKeyboardVisible = false;
+
+        function setVirtualKeyboardVisible(visible) {
+            virtualKeyboardVisible = visible;
+            const panel = document.getElementById('virtualKeyboardPanel');
+            const switchBtn = document.getElementById('btnSwitchInputMode');
+            if (!panel) return;
+
+            if (visible) {
+                panel.classList.remove('hidden');
+                if (switchBtn) switchBtn.textContent = '⌨️ Teclado Celular';
+            } else {
+                panel.classList.add('hidden');
+                if (switchBtn) switchBtn.textContent = '🕹️ Teclado Táctico';
+            }
+            clampEnemiesToPlayfield();
+        }
+
         function startGame(startWave = 1, summonBossImmediately = false) {
             audio.init();
             gameState.running = true;
@@ -1976,10 +2290,16 @@
             document.getElementById('hudTop').classList.remove('hidden');
             document.getElementById('hudBottom').classList.remove('hidden');
 
+            // En dispositivos móviles o táctiles, activar automáticamente el teclado táctico en pantalla
+            if (isTouchOrMobileDevice()) {
+                setVirtualKeyboardVisible(true);
+            }
+
             if (gameState.cervantesMecha) {
                 document.getElementById('mechaBadgeHud').classList.remove('hidden');
             }
 
+            resizeCanvas();
             updateHud();
             audio.startMusicLoop(() => gameState.comboMultiplier);
 
@@ -1993,6 +2313,11 @@
         function triggerGameOver(isVictory = false) {
             gameState.running = false;
             audio.stopMusicLoop();
+
+            const combatInput = document.getElementById('combatInput');
+            if (combatInput && document.activeElement === combatInput) {
+                combatInput.blur();
+            }
 
             const modal = document.getElementById('gameOverModal');
             const title = document.getElementById('endGameTitle');
@@ -2016,7 +2341,176 @@
             modal.classList.add('flex');
         }
 
-        // Eventos de Teclado Global (Pantalla de Título + Combate en Tiempo Real)
+        // Selección táctil directa de enemigos sobre el Canvas (Celular y PC)
+        canvas.addEventListener('pointerdown', (e) => {
+            if (!gameState.running || gameState.paused) return;
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+
+            // Buscar si el usuario tocó alguna nave enemiga
+            for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+                const en = gameState.enemies[i];
+                const halfW = (en.lastBoxW || 130) / 2 + 18;
+                const halfH = (en.lastBoxH || 44) / 2 + 20;
+                if (Math.abs(px - en.x) <= halfW && Math.abs(py - en.y) <= halfH) {
+                    gameState.lockedEnemyId = en.id;
+                    triggerHaptic(12);
+                    audio.playLaser(0, true);
+                    updateHud();
+                    break;
+                }
+            }
+        });
+
+        // Botón para alternar o soltar blanco fijado
+        document.getElementById('btnCycleTarget').addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            if (!gameState.running || gameState.paused) return;
+            triggerHaptic(10);
+            if (gameState.enemies.length === 0) {
+                gameState.lockedEnemyId = null;
+                updateHud();
+                return;
+            }
+            const sorted = [...gameState.enemies].sort((a, b) => b.y - a.y);
+            const currentIndex = sorted.findIndex(en => en.id === gameState.lockedEnemyId);
+            if (currentIndex === -1) {
+                gameState.lockedEnemyId = sorted[0].id;
+            } else if (currentIndex + 1 < sorted.length) {
+                gameState.lockedEnemyId = sorted[currentIndex + 1].id;
+            } else {
+                gameState.lockedEnemyId = null;
+            }
+            updateHud();
+        });
+
+        // Apartado de Escritura Directa (#combatInput) compatible con Android (Gboard/Samsung), iOS y PC
+        const combatInputEl = document.getElementById('combatInput');
+
+        combatInputEl.addEventListener('focus', () => {
+            // Al abrir el teclado nativo del celular, ocultar las filas QWERTY virtuales para no duplicar teclados
+            if (isTouchOrMobileDevice()) {
+                setVirtualKeyboardVisible(false);
+            }
+            setTimeout(resizeCanvas, 120);
+        });
+
+        combatInputEl.addEventListener('blur', () => {
+            setTimeout(resizeCanvas, 120);
+        });
+
+        combatInputEl.addEventListener('input', (e) => {
+            const rawVal = combatInputEl.value;
+            if (!rawVal) return;
+
+            for (const ch of rawVal) {
+                if (ch === '+' || ch === '´' || ch === "'") {
+                    setTildeArmed(true);
+                } else if (ch === ' ') {
+                    processPlayerCharInput('ü', true);
+                } else {
+                    processPlayerCharInput(ch, false);
+                }
+            }
+            combatInputEl.value = '';
+        });
+
+        // Botón para alternar entre Teclado Táctico Neón y Teclado Nativo del Celular
+        document.getElementById('btnSwitchInputMode').addEventListener('click', () => {
+            if (virtualKeyboardVisible) {
+                setVirtualKeyboardVisible(false);
+                combatInputEl.focus();
+            } else {
+                combatInputEl.blur();
+                setVirtualKeyboardVisible(true);
+            }
+        });
+
+        document.getElementById('btnToggleKeyboardHud').addEventListener('click', () => {
+            setVirtualKeyboardVisible(!virtualKeyboardVisible);
+        });
+
+        // Eventos del Teclado Táctico Ciberpunk Integrado (Respuesta instantánea sin delay + pulsación larga para tilde)
+        document.querySelectorAll('.vkey-btn').forEach(btn => {
+            let longPressTimer = null;
+            let longPressFired = false;
+
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                if (!gameState.running || gameState.paused) return;
+                triggerHaptic(10);
+                btn.classList.add('key-pressed');
+
+                const keyChar = btn.getAttribute('data-vkey');
+                const vowelAttr = btn.getAttribute('data-vowel');
+                longPressFired = false;
+
+                if (vowelAttr && VOWEL_TO_ACCENT[vowelAttr]) {
+                    longPressTimer = setTimeout(() => {
+                        longPressFired = true;
+                        triggerHaptic(22);
+                        processPlayerCharInput(VOWEL_TO_ACCENT[vowelAttr], false);
+                        btn.classList.remove('key-pressed');
+                    }, 230);
+                } else {
+                    processPlayerCharInput(keyChar, false);
+                }
+            });
+
+            const finishVowelTap = (e) => {
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                    if (!longPressFired && gameState.running && !gameState.paused) {
+                        const keyChar = btn.getAttribute('data-vkey');
+                        processPlayerCharInput(keyChar, false);
+                    }
+                }
+                btn.classList.remove('key-pressed');
+            };
+
+            btn.addEventListener('pointerup', finishVowelTap);
+            btn.addEventListener('pointercancel', () => {
+                if (longPressTimer) clearTimeout(longPressTimer);
+                longPressTimer = null;
+                btn.classList.remove('key-pressed');
+            });
+            btn.addEventListener('pointerleave', () => {
+                btn.classList.remove('key-pressed');
+            });
+        });
+
+        // Botones de la Barra Rápida de 1-Toque (Á, É, Í, Ó, Ú, Ü)
+        document.querySelectorAll('.quick-char-btn').forEach(btn => {
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault(); // Evita cerrar el teclado nativo del celular si estaba abierto
+                if (!gameState.running || gameState.paused) return;
+                triggerHaptic(12);
+                const ch = btn.getAttribute('data-char');
+                if (ch) processPlayerCharInput(ch, false);
+            });
+        });
+
+        // Botones de Tilde y Diéresis en el teclado virtual y HUD
+        const handleTildeToggle = (e) => {
+            e.preventDefault();
+            triggerHaptic(12);
+            setTildeArmed(!gameState.tildeArmed);
+        };
+
+        const handleDieresisTrigger = (e) => {
+            e.preventDefault();
+            triggerHaptic(12);
+            processPlayerCharInput('ü', true);
+        };
+
+        document.getElementById('btnArmTilde').addEventListener('pointerdown', handleTildeToggle);
+        document.getElementById('vkeyTilde').addEventListener('pointerdown', handleTildeToggle);
+        document.getElementById('btnArmDieresis').addEventListener('pointerdown', handleDieresisTrigger);
+        document.getElementById('vkeyDieresis').addEventListener('pointerdown', handleDieresisTrigger);
+
+        // Eventos de Teclado Físico Global (Pantalla de Título + Combate en Tiempo Real en PC)
         window.addEventListener('keydown', (e) => {
             // En la pantalla de título, escuchar el vocablo secreto
             if (!gameState.running) {
@@ -2040,7 +2534,23 @@
 
             if (gameState.paused) return;
 
-            // Modificadores inteligentes para Tilde (Tab, +, ´, ') y Diéresis (Espacio, *)
+            // Si el foco está en #combatInput, dejar que su evento 'input' procese los caracteres normales para no duplicar en móvil/PC
+            if (document.activeElement === combatInputEl) {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    setTildeArmed(true);
+                } else if (e.key === 'Escape') {
+                    gameState.lockedEnemyId = null;
+                    setTildeArmed(false);
+                    setDieresisArmed(false);
+                    updateHud();
+                } else if (e.key === 'Dead') {
+                    setTildeArmed(true);
+                }
+                return;
+            }
+
+            // Modificadores inteligentes para Tilde (Tab, +, ´, ') y Diéresis (Espacio)
             if (e.key === 'Tab' || e.key === '+' || e.key === 'Dead' || e.key === '´' || e.key === "'") {
                 if (e.key === 'Tab' || e.key === '+') e.preventDefault();
                 setTildeArmed(true);
@@ -2061,7 +2571,7 @@
                 return;
             }
 
-            if (e.key.length === 1) {
+            if (e.key.length === 1 && e.key !== 'Unidentified') {
                 processPlayerCharInput(e.key, false);
             }
         });
@@ -2095,14 +2605,6 @@
             if (gameState.running) {
                 spawnPentavocalicBoss();
             }
-        });
-
-        document.getElementById('btnArmTilde').addEventListener('click', () => {
-            setTildeArmed(!gameState.tildeArmed);
-        });
-
-        document.getElementById('btnArmDieresis').addEventListener('click', () => {
-            processPlayerCharInput('ü', true);
         });
 
         // Modal Códice RAE
@@ -2181,6 +2683,7 @@
         // Iniciar aplicación al cargar la ventana
         window.onload = function () {
             renderSecretWordTracker();
+            lastFrameTime = performance.now();
             requestAnimationFrame(gameLoop);
         };
     </script>
